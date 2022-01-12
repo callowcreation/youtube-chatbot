@@ -18,8 +18,6 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
     }
 
     context.log.info('Get all user items completed.');
-
-    context.done();
 };
 
 export default httpTrigger;
