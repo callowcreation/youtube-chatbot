@@ -38,24 +38,21 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 
             encryptedData += cipher.final("binary");
 
-            //storeToken(encryptedData);
-            const json = await service.liveBroadcasts.list({
+            const json = await service.channels.list({
                 auth: oauth2Client,
                 part: ['snippet'],
-                broadcastStatus: 'active',
+                mine: true
             });
-
+    
             if (json.data.items.length > 0) {
                 const streamInfo = json.data.items[0];
-                const liveChatId = streamInfo.snippet.liveChatId;
-                /*if (!liveChatsInfos.find(x => x.liveChatId == liveChatId)) {
-                    liveChatsInfos.push({ liveChatId, pageToken: null });
-                }*/
+
+                const channelId = streamInfo.id;
                 console.log({ streamInfo });
-                //res.send('Welcome to my live stream');
             } else {
-                //res.send('Stream is not live atm');
+                // no sttream found
             }
+            //storeToken(encryptedData);
         }
     });
 

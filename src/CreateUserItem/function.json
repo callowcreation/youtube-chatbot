@@ -23,7 +23,7 @@
       "collectionName": "userItems",
       "createIfNotExists": "false",
       "connectionStringSetting": "ytchatbotdbdev_DOCUMENTDB",
-      "partitionKey": "/channel_id"
+      "partitionKey": "/id"
     }
   ],
   "scriptFile": "../dist/CreateUserItem/index.js"

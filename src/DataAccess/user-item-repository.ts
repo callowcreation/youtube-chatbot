@@ -24,7 +24,6 @@ export async function getAllUserItems(): Promise<UserItemRecord[]> {
     return userItems.map(item => {
         return {
             id: item.id,
-            channel_id: item.channel_id,
             expiry_date: item.expiry_date,
             refresh_token: item.refresh_token,
             access_token: item.access_token
@@ -32,9 +31,9 @@ export async function getAllUserItems(): Promise<UserItemRecord[]> {
     });
 }
 
-export async function getUserItem(channel_id: string): Promise<UserItemRecord> {
+export async function getUserItem(id: string): Promise<UserItemRecord> {
     const querySpec = {
-        query: `SELECT * from c WHERE c.channel_id = '${channel_id}'`
+        query: `SELECT * from c WHERE c.id = '${id}'`
     };
 
     const container = getCosmosDbContainer();
@@ -45,23 +44,22 @@ export async function getUserItem(channel_id: string): Promise<UserItemRecord> {
     const item = userItems[0];
     return {
         id: item.id,
-        channel_id: item.channel_id,
         expiry_date: item.expiry_date,
         refresh_token: item.refresh_token,
         access_token: item.access_token
     } as UserItemRecord;
 }
 
-export async function deleteUserItem(id: string, channel_id: string): Promise<any> {
+export async function deleteUserItem(id: string): Promise<any> {
     const container = getCosmosDbContainer();
-    const { resource: result } = await container.item(id, channel_id).delete();
+    const { resource: result } = await container.item(id).delete();
     return result;
 }
 
-export async function editUserItem(id: string, channel_id: string, userItem: UserItemRecord): Promise<UserItemRecord> {
+export async function editUserItem(id: string, userItem: UserItemRecord): Promise<UserItemRecord> {
     const container = getCosmosDbContainer();
     const { resource: updatedItem } = await container
-        .item(id, channel_id)
+        .item(id)
         .replace(userItem);
     return updatedItem;
 }
