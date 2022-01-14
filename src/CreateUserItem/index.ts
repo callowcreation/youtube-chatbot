@@ -13,7 +13,8 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 	const userItemRecord = {
 		id: "dummy-id",
 		expiry_date: 29839048239048,
-		refresh_token: 'dummy-token'
+		refresh_token: 'dummy-token',
+		access_token: 'secret-code-do-not-look'
 	} as UserItemRecord;
 
 	context.bindings.userItemRecord = userItemRecord;

@@ -25,8 +25,7 @@ export async function getAllUserItems(): Promise<UserItemRecord[]> {
         return {
             id: item.id,
             expiry_date: item.expiry_date,
-            refresh_token: item.refresh_token,
-            access_token: item.access_token
+            refresh_token: item.refresh_token
         } as UserItemRecord;
     });
 }
@@ -45,8 +44,7 @@ export async function getUserItem(id: string): Promise<UserItemRecord> {
     return {
         id: item.id,
         expiry_date: item.expiry_date,
-        refresh_token: item.refresh_token,
-        access_token: item.access_token
+        refresh_token: item.refresh_token
     } as UserItemRecord;
 }
 
