@@ -26,5 +26,5 @@
       "partitionKey": "/id"
     }
   ],
-  "scriptFile": "../dist/CreateUserItem/index.js"
+  "scriptFile": "../../dist/CreateUserItem/index.js"
 }

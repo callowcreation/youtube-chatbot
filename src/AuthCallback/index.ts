@@ -43,7 +43,9 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                 const userItemRecord = {
                     id: channelId,
                     expiry_date: token.expiry_date,
-                    refresh_token: token.refresh_token
+                    refresh_token: token.refresh_token,
+                    scope: token.scope,
+                    token_type: token.token_type
                 } as UserItemRecord;
 
                 const credential = new DefaultAzureCredential();
@@ -53,9 +55,13 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
               
                 const client = new SecretClient(url, credential);
               
-                await client.setSecret(channelId, token.access_token);
-
-                createUserItem(userItemRecord);
+                
+                try {
+                    await client.setSecret(channelId, token.access_token);
+                    await createUserItem(userItemRecord);
+                } catch (err) {
+                    context.log.error(err);
+                }
             } else {
                 context.log.warn(`Channel not found`);
             }

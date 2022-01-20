@@ -27,7 +27,7 @@ export async function getAllUserItems(): Promise<UserItemRecord[]> {
             expiry_date: item.expiry_date,
             refresh_token: item.refresh_token
         } as UserItemRecord;
-    });
+    }) as UserItemRecord[];
 }
 
 export async function getUserItem(id: string): Promise<UserItemRecord> {
@@ -44,7 +44,9 @@ export async function getUserItem(id: string): Promise<UserItemRecord> {
     return {
         id: item.id,
         expiry_date: item.expiry_date,
-        refresh_token: item.refresh_token
+        refresh_token: item.refresh_token,
+        scope: item.scope,
+        token_type: item.token_type
     } as UserItemRecord;
 }
 
@@ -54,7 +56,7 @@ export async function deleteUserItem(id: string): Promise<any> {
     return result;
 }
 
-export async function editUserItem(id: string, userItem: UserItemRecord): Promise<UserItemRecord> {
+export async function updateUserItem(id: string, userItem: UserItemRecord): Promise<UserItemRecord> {
     const container = getCosmosDbContainer();
     const { resource: updatedItem } = await container
         .item(id)

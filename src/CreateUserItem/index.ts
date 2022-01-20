@@ -14,7 +14,9 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 		id: "dummy-id",
 		expiry_date: 29839048239048,
 		refresh_token: 'dummy-token',
-		access_token: 'secret-code-do-not-look'
+		access_token: 'secret-code-do-not-look',
+		scope: 'http://youtube-api-scope',
+		token_type: 'Bearer'
 	} as UserItemRecord;
 
 	context.bindings.userItemRecord = userItemRecord;
