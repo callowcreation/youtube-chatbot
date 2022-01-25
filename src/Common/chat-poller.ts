@@ -7,7 +7,17 @@ export interface Credentials {
 	token_type: string;
 	expiry_date: number;
 }
+
 export interface ChatPoller {
 	credentials: Credentials,
 	live_item: LiveItemRecord
+}
+
+export interface ChatResponse {
+	live_item: LiveItemRecord,
+	data: {
+		nextPageToken: string,
+		offlineAt?: string,
+		items: any[] // try to find the google type and use it here
+	}
 }
