@@ -4,11 +4,12 @@ import { DefaultAzureCredential } from "@azure/identity";
 
 import { google } from 'googleapis';
 
-import { getAllLiveItems, getLiveItem, updateLiveItem } from "../DataAccess/live-item-repository";
+import { deleteLiveItem, getAllLiveItems, getLiveItem, updateLiveItem } from "../DataAccess/live-item-repository";
 import { getUserItem } from "../DataAccess/user-item-repository";
 import { TokenItem } from "../Common/token-item";
 import { ChatPoller, Credentials } from "../Common/chat-poller";
 import { LiveItemRecord } from "../Models/live-item-record";
+import { LiveChatError } from '../Common/live-chat-error';
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -22,9 +23,9 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     var timeStamp = new Date().toISOString();
 
     if (myTimer.isPastDue) {
-        context.log('Chat Poller is running late!');
+        console.log('Chat Poller is running late!');
     }
-    context.log('Chat Poller function ran!', timeStamp);
+    console.log('Chat Poller function ran!', timeStamp);
 
     const liveItems = await getAllLiveItems();
 
@@ -47,10 +48,10 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                         return {
                             live_item: liveItem,
                             credentials: {
-                                expiry_date: userItem.expiry_date,
-                                refresh_token: userItem.refresh_token,
+                                expiry_date: userItem.expiryDate,
+                                refresh_token: userItem.refreshToken,
                                 scope: userItem.scope,
-                                token_type: userItem.token_type,
+                                token_type: userItem.tokenType,
                                 access_token: secret.value
                             }
                         } as ChatPoller;
@@ -64,22 +65,45 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 
             oauth2Client.setCredentials(result.credentials);
 
-            const json = await service.liveChatMessages.list({
-                auth: oauth2Client,
-                part: ['snippet'],
-                liveChatId: result.live_item.live_chat_id,
-                pageToken: result.live_item.page_token
-            });
-            if(json.data.items.length > 0) {
-                console.log(json.data.items);
-            }
-            if (json.data.nextPageToken) {
-                const liveItem = {
-                    id: result.live_item.id,
-                    live_chat_id: result.live_item.live_chat_id,
-                    page_token: json.data.nextPageToken
-                } as LiveItemRecord;
-                await updateLiveItem(result.live_item.id, liveItem);
+            try {
+                const json = await service.liveChatMessages.list({
+                    auth: oauth2Client,
+                    part: ['snippet'],
+                    liveChatId: result.live_item.liveChatId,
+                    pageToken: result.live_item.pageToken
+                });
+                if (json.data.offlineAt) {
+                    throw new LiveChatError(`Stream went offline: ${json.data.offlineAt}`);
+                }
+                if (json.data.items.length > 0) {
+                    console.log(json.data.items);
+                }
+                if (json.data.nextPageToken) {
+                    const liveItem = {
+                        id: result.live_item.id,
+                        liveChatId: result.live_item.liveChatId,
+                        pageToken: json.data.nextPageToken
+                    } as LiveItemRecord;
+                    await updateLiveItem(result.live_item.id, liveItem);
+                }
+            } catch (err) {
+                if (err instanceof LiveChatError) {
+                    console.log(err.message);
+                    await deleteLiveItem(result.live_item.id);
+                } else if (err.code === 403) {
+                    const reason = err.errors[0].reason;
+                    switch (reason) {
+                        case 'liveChatEnded': {
+                            // remove item from db
+                            console.log(`Live chat ended removing ${result.live_item.id} item from database.`);
+                            await deleteLiveItem(result.live_item.id);
+                        } break;
+                        default: {
+                            // log error to db
+                            console.error(err);
+                        } break;
+                    }
+                }
             }
         }
     } else {

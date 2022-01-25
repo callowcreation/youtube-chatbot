@@ -3,7 +3,7 @@ import { UserItemRecord } from "../Models/user-item-record";
 import { getChannelId } from "../Common/Utils";
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
-	context.log('HTTP trigger function processed a request.');
+	console.log('HTTP trigger function processed a request.');
 	const name = (req.query.name || (req.body && req.body.name));
 	const responseMessage = name
 		? "Hello, " + name + ". This HTTP triggered function executed successfully."
@@ -12,11 +12,11 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 
 	const userItemRecord = {
 		id: "dummy-id",
-		expiry_date: 29839048239048,
-		refresh_token: 'dummy-token',
+		expiryDate: 29839048239048,
+		refreshToken: 'dummy-token',
 		access_token: 'secret-code-do-not-look',
 		scope: 'http://youtube-api-scope',
-		token_type: 'Bearer'
+		tokenType: 'Bearer'
 	} as UserItemRecord;
 
 	context.bindings.userItemRecord = userItemRecord;

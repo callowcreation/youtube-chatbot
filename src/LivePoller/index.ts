@@ -4,7 +4,7 @@ import { DefaultAzureCredential } from "@azure/identity";
 
 import { google } from 'googleapis';
 
-import { getAllUserItems, updateUserItem } from "../DataAccess/user-item-repository";
+import { deleteUserItem, getAllUserItems, updateUserItem } from "../DataAccess/user-item-repository";
 import { TokenItem } from "../Common/token-item";
 import { createLiveItem, deleteLiveItem, getLiveItem, updateLiveItem } from "../DataAccess/live-item-repository";
 import { LiveItemRecord } from "../Models/live-item-record";
@@ -23,9 +23,9 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     var timeStamp = new Date().toISOString();
 
     if (myTimer.isPastDue) {
-        context.log('Live Poller is running late!');
+        console.log('Live Poller is running late!');
     }
-    context.log('Live Poller function ran!', timeStamp);
+    console.log('Live Poller function ran!', timeStamp);
 
     const userItems = await getAllUserItems();
 
@@ -43,14 +43,17 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             const userItem = userItems[i];
 
             promises.push(client.getSecret(userItem.id)
-                .then(secret => ({
-                    id: userItem.id,
-                    expiry_date: userItem.expiry_date,
-                    refresh_token: userItem.refresh_token,
-                    scope: userItem.scope,
-                    token_type: userItem.token_type,
-                    access_token: secret.value,
-                })
+                .then(secret => {
+                    // check for expired access token (secret value) and refersh if needed
+                    return ({
+                        id: userItem.id,
+                        expiry_date: userItem.expiryDate,
+                        refresh_token: userItem.refreshToken,
+                        scope: userItem.scope,
+                        token_type: userItem.tokenType,
+                        access_token: secret.value,
+                    })
+                }
                 ));
         }
         const results = await Promise.all(promises);
@@ -66,29 +69,40 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             } as TokenItem;
             oauth2Client.setCredentials(token);
 
-            const json = await service.liveBroadcasts.list({
-                auth: oauth2Client,
-                part: ['snippet'],
-                broadcastStatus: 'active',
-            });
+            try {
+                const item = await getLiveItem(result.id);
 
-            if (json.data.items.length > 0) {
-                const streamInfo = json.data.items[0];
-                const { channelId, liveChatId } = streamInfo.snippet;
-                const item = await getLiveItem(channelId);
-                if(item === null) {
-                    const liveItem = {
-                        id: channelId,
-                        live_chat_id: liveChatId
-                    } as LiveItemRecord;
-                    await createLiveItem(liveItem);
+                const json = await service.liveBroadcasts.list({
+                    auth: oauth2Client,
+                    part: ['snippet'],
+                    broadcastStatus: 'active',
+                });
+
+                if (json.data.items.length > 0) {
+                    if (item === null) {
+                        const streamInfo = json.data.items[0];
+                        const { channelId, liveChatId } = streamInfo.snippet;
+                        const liveItem = {
+                            id: channelId,
+                            liveChatId: liveChatId
+                        } as LiveItemRecord;
+                        await createLiveItem(liveItem);
+                        console.log(`Created new ${result.id} is live`);
+                    } else {
+                        console.log(`Live item exists for ${result.id}`);
+                    }
+                } else { // stream may be offline
+                    if (item !== null) {
+                        await deleteLiveItem(item.id);
+                        console.log(`Removed ${item.id} not live`);
+                    }
                 }
-            } else {
-                await deleteLiveItem(result.id);
+            } catch (err) {
+                console.error(err);
             }
         }
     } else {
-
+        console.log('No user items');
     }
 
 };

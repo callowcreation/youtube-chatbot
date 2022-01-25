@@ -24,8 +24,8 @@ export async function getAllLiveItems(): Promise<LiveItemRecord[]> {
     return liveItems.map(item => {
         return {
             id: item.id,
-            live_chat_id: item.live_chat_id,
-            page_token: item.page_token
+            liveChatId: item.liveChatId,
+            pageToken: item.pageToken
         } as LiveItemRecord;
     }) as LiveItemRecord[];
 }
@@ -44,8 +44,8 @@ export async function getLiveItem(id: string): Promise<LiveItemRecord> {
         const item = liveItems[0];
         return {
             id: item.id,
-            live_chat_id: item.live_chat_id,
-            page_token: item.page_token
+            liveChatId: item.liveChatId,
+            pageToken: item.pageToken
         } as LiveItemRecord;
     } else {
         return null;
@@ -54,7 +54,10 @@ export async function getLiveItem(id: string): Promise<LiveItemRecord> {
 
 export async function deleteLiveItem(id: string): Promise<any> {
     const container = getCosmosDbContainer();
-    const { resource: result } = await container.item(id).delete();
+    const item = container.item(id, id);
+    const result = await item.delete().catch(e => {
+        console.log(e);
+    });
     return result;
 }
 

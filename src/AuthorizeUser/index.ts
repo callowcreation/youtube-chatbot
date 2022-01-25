@@ -13,7 +13,7 @@ const SCOPES = [
 ];
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
-    context.log('Authorize User started');
+    console.log('Authorize User started');
 
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
@@ -21,7 +21,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
         scope: SCOPES
     });
 
-    context.log('Authorize User ended');
+    console.log('Authorize User ended');
 
     context.res.status(302)
         .set('location', authUrl)

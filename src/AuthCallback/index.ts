@@ -3,7 +3,7 @@ import { SecretClient } from "@azure/keyvault-secrets";
 import { DefaultAzureCredential } from "@azure/identity";
 
 import { google } from 'googleapis';
-import { createUserItem } from "../DataAccess/user-item-repository";
+import { createUserItem, getUserItem, updateUserItem } from "../DataAccess/user-item-repository";
 import { UserItemRecord } from "../Models/user-item-record";
 
 const OAuth2 = google.auth.OAuth2;
@@ -15,7 +15,7 @@ const redirectUri = process.env.redirect_uri;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
-    context.log('Starting Auth Callback.');
+    console.log('Starting Auth Callback.');
 
     context.res = {};
 
@@ -42,10 +42,10 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 
                 const userItemRecord = {
                     id: channelId,
-                    expiry_date: token.expiry_date,
-                    refresh_token: token.refresh_token,
+                    expiryDate: token.expiry_date,
+                    refreshToken: token.refresh_token,
                     scope: token.scope,
-                    token_type: token.token_type
+                    tokenType: token.token_type
                 } as UserItemRecord;
 
                 const credential = new DefaultAzureCredential();
@@ -54,21 +54,26 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                 const url = "https://" + keyVaultName + ".vault.azure.net";
               
                 const client = new SecretClient(url, credential);
-              
-                
+                         
                 try {
                     await client.setSecret(channelId, token.access_token);
-                    await createUserItem(userItemRecord);
+
+                    const item = await getUserItem(channelId);
+                    if(item === null) {
+                        await createUserItem(userItemRecord);
+                    } else {
+                        await updateUserItem(channelId, userItemRecord);
+                    }
                 } catch (err) {
-                    context.log.error(err);
+                    console.error(err);
                 }
             } else {
-                context.log.warn(`Channel not found`);
+                console.warn(`Channel not found`);
             }
         }
     });
 
-    context.log('Ended Auth Callback.');
+    console.log('Ended Auth Callback.');
 };
 
 export default httpTrigger;
