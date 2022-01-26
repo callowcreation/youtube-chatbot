@@ -8,6 +8,8 @@ import { deleteUserItem, getAllUserItems, updateUserItem } from "../DataAccess/u
 import { TokenItem } from "../Common/token-item";
 import { createLiveItem, deleteLiveItem, getLiveItem, updateLiveItem } from "../DataAccess/live-item-repository";
 import { LiveItemRecord } from "../Models/live-item-record";
+import { api, endpoints } from "../APIAccess/api-request";
+import { ApiUser } from "../APIAccess/api-user";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -26,6 +28,10 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         console.log('Live Poller is running late!');
     }
     console.log('Live Poller function ran!', timeStamp);
+
+    const fetchUserItems: ApiUser[] = await api<ApiUser[]>(endpoints.user_all);
+
+    console.log(fetchUserItems);
 
     const userItems = await getAllUserItems();
 

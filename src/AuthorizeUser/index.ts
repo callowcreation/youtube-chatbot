@@ -9,6 +9,7 @@ const clientId = process.env.client_id;
 const redirectUri = process.env.redirect_uri;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 const SCOPES = [
+    'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube',
 ];
 
