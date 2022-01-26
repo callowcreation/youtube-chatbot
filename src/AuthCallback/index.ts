@@ -1,8 +1,7 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
-import { SecretClient } from "@azure/keyvault-secrets";
-import { DefaultAzureCredential } from "@azure/identity";
 
 import { google } from 'googleapis';
+import { secretStore } from "../Common/secret-store";
 import { createUserItem, getUserItem, updateUserItem } from "../DataAccess/user-item-repository";
 import { UserItemRecord } from "../Models/user-item-record";
 
@@ -48,15 +47,8 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                     tokenType: token.token_type
                 } as UserItemRecord;
 
-                const credential = new DefaultAzureCredential();
-
-                const keyVaultName = process.env["ytchatbot_KEYSTORE"];
-                const url = "https://" + keyVaultName + ".vault.azure.net";
-              
-                const client = new SecretClient(url, credential);
-                         
                 try {
-                    await client.setSecret(channelId, token.access_token);
+                    await secretStore.set(channelId, token.access_token);
 
                     const item = await getUserItem(channelId);
                     if(item === null) {

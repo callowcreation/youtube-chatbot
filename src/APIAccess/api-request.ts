@@ -3,8 +3,11 @@ import fetch from 'node-fetch';
 
 const apiUrl = 'https://rallydataservice.azurewebsites.net/api';
 
+export const platform: string = 'youtube';
+
 export const endpoints = {
-    user_all: '/user/all'
+    user_all: '/user/all',
+    tip: 'tx/tip'
 }
 
 // https://stackoverflow.com/a/49471725 example

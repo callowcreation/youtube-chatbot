@@ -1,15 +1,13 @@
 import { AzureFunction, Context } from "@azure/functions"
-import { SecretClient } from "@azure/keyvault-secrets";
-import { DefaultAzureCredential } from "@azure/identity";
 
 import { google } from 'googleapis';
 
-import { deleteLiveItem, getAllLiveItems, getLiveItem, updateLiveItem } from "../DataAccess/live-item-repository";
+import { deleteLiveItem, getAllLiveItems, updateLiveItem } from "../DataAccess/live-item-repository";
 import { getUserItem } from "../DataAccess/user-item-repository";
-import { TokenItem } from "../Common/token-item";
 import { ChatPoller, ChatResponse, Credentials } from "../Common/chat-poller";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { LiveChatError } from '../Common/live-chat-error';
+import { secretStore } from "../Common/secret-store";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -44,19 +42,12 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 
     if (liveItems && liveItems.length > 0) {
 
-        const credential = new DefaultAzureCredential();
-
-        const keyVaultName = process.env["ytchatbot_KEYSTORE"];
-        const url = "https://" + keyVaultName + ".vault.azure.net";
-
-        const client = new SecretClient(url, credential);
-
         const promises = [];
         for (let i = 0; i < liveItems.length; i++) {
             const liveItem = liveItems[i] as LiveItemRecord;
 
             promises.push(getUserItem(liveItem.id)
-                .then(userItem => client.getSecret(liveItem.id)
+                .then(userItem => secretStore.get(liveItem.id)
                     .then(secret => ({
                         live_item: liveItem,
                         credentials: {

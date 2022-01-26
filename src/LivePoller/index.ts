@@ -1,19 +1,20 @@
 import { AzureFunction, Context } from "@azure/functions"
-import { SecretClient } from "@azure/keyvault-secrets";
-import { DefaultAzureCredential } from "@azure/identity";
 
 import { google } from 'googleapis';
 
-import { deleteUserItem, getAllUserItems, updateUserItem } from "../DataAccess/user-item-repository";
+import { getAllUserItems } from "../DataAccess/user-item-repository";
 import { TokenItem } from "../Common/token-item";
-import { createLiveItem, deleteLiveItem, getLiveItem, updateLiveItem } from "../DataAccess/live-item-repository";
+import { createLiveItem, deleteLiveItem, getLiveItem } from "../DataAccess/live-item-repository";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { api, endpoints } from "../APIAccess/api-request";
 import { ApiUser } from "../APIAccess/api-user";
+import { secretStore } from "../Common/secret-store";
+import { UserItemRecord } from "../Models/user-item-record";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
 const SCOPES = [
+    'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube',
 ];
 const clientSecret = process.env.client_secret;
@@ -33,22 +34,25 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 
     console.log(fetchUserItems);
 
+    for (let i = 0; i < fetchUserItems.length; i++) {
+        const fetchUserItem = fetchUserItems[i];
+
+        const userItemRecord = {
+            id: fetchUserItem.userIdentity.youtubeId,
+            refreshToken: fetchUserItem.userIdentity.youtubeRefreshToken,
+        } as UserItemRecord;
+
+    }
+
     const userItems = await getAllUserItems();
 
     if (userItems && userItems.length > 0) {
-
-        const credential = new DefaultAzureCredential();
-
-        const keyVaultName = process.env["ytchatbot_KEYSTORE"];
-        const url = "https://" + keyVaultName + ".vault.azure.net";
-
-        const client = new SecretClient(url, credential);
 
         const promises = [];
         for (let i = 0; i < userItems.length; i++) {
             const userItem = userItems[i];
 
-            promises.push(client.getSecret(userItem.id)
+            promises.push(secretStore.get(userItem.id)
                 .then(secret => {
                     // check for expired access token (secret value) and refersh if needed
                     return ({
