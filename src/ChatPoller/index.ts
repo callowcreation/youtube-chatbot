@@ -3,10 +3,13 @@ import { AzureFunction, Context } from "@azure/functions"
 import { google } from 'googleapis';
 
 import { deleteLiveItem, getAllLiveItems, updateLiveItem } from "../DataAccess/live-item-repository";
-import { ChatPoller, ChatResponse, Credentials } from "../Common/chat-poller";
+import { ChatPoller, ChatResponse, Credentials, MessageItem } from "../Common/chat-poller";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { LiveChatError } from '../Common/live-chat-error';
 import { secretStore } from "../Common/secret-store";
+import { executeCommand } from "../Commands/commander";
+import { getRequest } from "../APIAccess/api-request";
+import { endpoints } from "../APIAccess/endpoints";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -52,7 +55,6 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 .then(secret => ({
                     live_item: liveItem,
                     credentials: {
-                        //expiry_date: userItem.expiryDate,
                         refresh_token: '1//06zpNYi3ndyOiCgYIARAAGAYSNwF-L9IrJ0p_9a8omGv3nxPdsULrSvs-1P5c0ncaYPg1MTDmLAGykMBH77K5C21lRgJjNVShBBk',
                         scope: SCOPES.join(' '),
                         token_type: 'Bearer',
@@ -70,6 +72,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         }
         const liveChatResponses = (await Promise.all(liveChatMessagesPromises)) as ChatResponse[];
 
+        const chatMessageItems = [] as MessageItem[];
         for (let i = 0; i < liveChatResponses.length; i++) {
             const { live_item, data } = liveChatResponses[i] as ChatResponse;
 
@@ -80,6 +83,11 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 }
                 if (data.items.length > 0) {
                     console.log(data.items);
+                    const messageItems = data.items.map(x => ({
+                        snippet: x.snippet,
+                        live_item: live_item
+                    }));
+                    chatMessageItems.push(...messageItems);
                 }
                 if (data.nextPageToken) {
                     const liveItem = {
@@ -107,6 +115,22 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                         } break;
                     }
                 }
+            }
+        }
+        
+        //getRequest('http://rallydataservice.azurewebsites.net/api/coin/list')
+        for (let i = 0; i < chatMessageItems.length; i++) {
+            const chatMessageItem = chatMessageItems[i];
+            const message = chatMessageItem.snippet.displayMessage;
+            if (message.startsWith('$')) {
+                try {
+                    const result = await executeCommand(chatMessageItem);
+                    console.log(result);
+                } catch (err) {
+                    console.log(err);
+                }
+            } else {
+                console.log(`Just a message: ${message}`);
             }
         }
     } else {

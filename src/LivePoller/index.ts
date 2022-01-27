@@ -41,15 +41,15 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             const { userId, userIdentity: { youtubeId, youtubeRefreshToken } } = userItems[i];
             if (youtubeId === null || youtubeId === undefined) continue;
             
-            /*const result = await postRequest(endpoints.api.user.path('updatetokens'), youtubeId, {
+            const result = await postRequest(endpoints.api.user.path('updatetokens'), youtubeId, {
                 tokens:[
                     {youtubeId, youtubeRefreshToken: '1//06zpNYi3ndyOiCgYIARAAGAYSNwF-L9IrJ0p_9a8omGv3nxPdsULrSvs-1P5c0ncaYPg1MTDmLAGykMBH77K5C21lRgJjNVShBBk'}
                 ]
             });
-            console.log(result);*/
+            console.log(result);
             
-            /*if(youtubeId) {
-                const item: ApiUser[] = await getRequest<ApiUser[]>(endpoints.api.user.path(`${platform}|${youtubeId}`));
+            /*if(youtubeId) { // works
+                const item: ApiUser[] = await getRequest<ApiUser[]>(endpoints.api.user_lookup.path(`${platform}|${youtubeId}`));
                 console.log({ item });
             } else {
                 console.log(`User ${userId} has no youtube id`);

@@ -13,11 +13,28 @@ export interface ChatPoller {
 	live_item: LiveItemRecord
 }
 
+export interface ChatSnippet {
+	authorChannelId: string,
+	displayMessage: string,
+	liveChatId: string,
+	publishedAt: string
+}
+
+export interface ChatItem {
+	id: string,
+	snippet: ChatSnippet
+}
+
 export interface ChatResponse {
 	live_item: LiveItemRecord,
 	data: {
 		nextPageToken: string,
 		offlineAt?: string,
-		items: any[] // try to find the google type and use it here
+		items: ChatItem[]
 	}
+}
+
+export interface MessageItem {
+	live_item: LiveItemRecord,
+	snippet: ChatSnippet
 }

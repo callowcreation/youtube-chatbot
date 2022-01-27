@@ -1,6 +1,7 @@
+import { MessageItem } from "../Common/chat-poller";
 
 
-export async function helpCommand() {
+export default async function (message_item: MessageItem) {
     return {
         message: `link to commands help web page`,
     };

@@ -1,9 +1,10 @@
-import { helpCommand } from "./help-command";
-import { tipCommand } from "./tip-command";
+import { MessageItem } from "../Common/chat-poller";
+import helpCommand from "./help-command";
+import tipCommand from "./tip-command";
 
 //$send d4rkcide 10 PLAY usd 
-export async function executeCommand(message: string) {
-    const rawMessage = message.trim();
+export async function executeCommand(message_item: MessageItem) {
+    const rawMessage = message_item.snippet.displayMessage.trim();
 
     const splits = rawMessage.split(' ');
 
@@ -16,7 +17,7 @@ export async function executeCommand(message: string) {
             throw new Error(`${commandName} is not implemented`);
         } break;
         case '$tip': {
-            return tipCommand('', splits);
+            return tipCommand(message_item);
         } break;
         case '$airdrop': {
             throw new Error(`${commandName} is not implemented`);
@@ -28,7 +29,7 @@ export async function executeCommand(message: string) {
             throw new Error(`${commandName} is not implemented`);
         } break;
         case '$commands': {
-            return helpCommand();
+            return helpCommand(message_item);
         } break;
 
         default: {

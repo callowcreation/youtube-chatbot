@@ -2,7 +2,7 @@
 
 
 class Endpoint {
-    
+              
     readonly apiUrl: string = 'https://rallydataservice.azurewebsites.net';
     readonly base: string;
 
@@ -10,34 +10,23 @@ class Endpoint {
         this.base = base;
     }
 
-    path(param) {
-        return `${this.apiUrl}/${this.base}/${param}`;
+    path(param?: string) {
+        const endpoint = param ? `/${param}` : ``;
+        return `${this.apiUrl}/${this.base}${endpoint}`;
     }
     
 }
 
-class User extends Endpoint {
-    constructor(base: string) {
-        super(base);
-        Object.setPrototypeOf(this, User.prototype);
-    }
-}
-
-class Transaction extends Endpoint {
-    constructor() {
-        super('api/tx');
-        Object.setPrototypeOf(this, User.prototype);
-    }
-}
-
 class Api {
-    transaction: Transaction = new Transaction();
-    user: User = new User('api/user');
+    transaction: Endpoint = new Endpoint('api/tx');
+    user: Endpoint = new Endpoint('api/user');
+    coin_list: Endpoint = new Endpoint('api/coin/list');
+    user_lookup: Endpoint = new Endpoint('api/user/lookup');
 }
 
 class Endpoints {
     api: Api = new Api();
-    user: User = new User('user');
+    user: Endpoint = new Endpoint('user');
 }
 
 export const endpoints: Endpoints = new Endpoints();
