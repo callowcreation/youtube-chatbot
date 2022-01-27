@@ -6,7 +6,7 @@ import { TokenItem } from "../Common/token-item";
 import { createLiveItem, deleteLiveItem, getLiveItem } from "../DataAccess/live-item-repository";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
-import { ApiUser } from "../APIAccess/api-user";
+import { ApiUser } from "../APIAccess/api-interfaces";
 import { secretStore } from "../Common/secret-store";
 import { endpoints } from '../APIAccess/endpoints';
 

@@ -9,32 +9,32 @@ export interface Credentials {
 }
 
 export interface ChatPoller {
-	credentials: Credentials,
-	live_item: LiveItemRecord
+	credentials: Credentials;
+	live_item: LiveItemRecord;
 }
 
 export interface ChatSnippet {
-	authorChannelId: string,
-	displayMessage: string,
-	liveChatId: string,
-	publishedAt: string
+	authorChannelId: string;
+	displayMessage: string;
+	liveChatId: string;
+	publishedAt: string;
 }
 
 export interface ChatItem {
-	id: string,
-	snippet: ChatSnippet
+	id: string;
+	snippet: ChatSnippet;
 }
 
 export interface ChatResponse {
-	live_item: LiveItemRecord,
+	live_item: LiveItemRecord;
 	data: {
-		nextPageToken: string,
-		offlineAt?: string,
-		items: ChatItem[]
+		nextPageToken: string;
+		offlineAt?: string;
+		items: ChatItem[];
 	}
 }
 
 export interface MessageItem {
-	live_item: LiveItemRecord,
-	snippet: ChatSnippet
+	live_item: LiveItemRecord;
+	snippet: ChatSnippet;
 }

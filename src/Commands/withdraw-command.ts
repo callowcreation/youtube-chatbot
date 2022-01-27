@@ -1,5 +1,5 @@
 
-import { TipRequest } from "../APIAccess/api-interfaces";
+import { WithdrawRequest } from "../APIAccess/api-interfaces";
 import { platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Common/chat-poller";
@@ -7,7 +7,7 @@ import { MessageItem } from "../Common/chat-poller";
 export default async function (message_item: MessageItem) {
 
     const splits = message_item.snippet.displayMessage.split(' ');
-    // {tip} {amount} {coin} {usd?}
+    // {widthdraw} {amount} {coin}
     const commandName = splits[0];
     const amount = +splits[1];
     const coin = splits[2];
@@ -17,19 +17,17 @@ export default async function (message_item: MessageItem) {
     const recipientId = message_item.live_item.id;
 
     if(isNaN(amount)) throw new Error(`Amount ${splits[1]} is not a number`);
-    if(issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);
 
     const data = {
-        token: coin,
-        from: `${platform}|${issuerId}`,
-        to: `${platform}|${recipientId}`,
-        amount: amount,
+        token: 'DTQ',
+        amount: 0.0, //0.01,
         platform: platform
-    } as TipRequest;
+    } as WithdrawRequest;
 
-    const result = await postRequest<any>(endpoints.api.transaction.path('tip'), issuerId, data);
+    const result = await postRequest<any>(endpoints.api.transaction.path('withdraw'), issuerId, data);
     console.log(result);
+    
     return {
-        message: `tip command executed`,
+        message: `withdraw command executed`,
     };
 }

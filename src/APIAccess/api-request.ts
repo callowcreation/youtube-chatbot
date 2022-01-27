@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { secretStore } from '../Common/secret-store';
+import { RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from './api-interfaces';
 
 export const platform: string = 'youtube';
 
@@ -147,7 +148,7 @@ export async function getRequest<T>(url): Promise<T> {
     return _request<T>('GET', url, null);
 }
 
-export async function postRequest<T>(url, youtubeId, data): Promise<T> {
+export async function postRequest<T>(url, youtubeId, data : WithdrawRequest | RainRequest | TipRequest | UpdateTokenRequest): Promise<T> {
     return _request<T>('POST', url, youtubeId, data);
 }
 

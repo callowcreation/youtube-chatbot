@@ -1,5 +1,5 @@
 
-import { TipRequest } from "../APIAccess/api-interfaces";
+import { RainRequest } from "../APIAccess/api-interfaces";
 import { platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Common/chat-poller";
@@ -17,19 +17,19 @@ export default async function (message_item: MessageItem) {
     const recipientId = message_item.live_item.id;
 
     if(isNaN(amount)) throw new Error(`Amount ${splits[1]} is not a number`);
-    if(issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);
-
+    //if(issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);
+    
     const data = {
         token: coin,
         from: `${platform}|${issuerId}`,
-        to: `${platform}|${recipientId}`,
+        to: [`${platform}|${recipientId}`, `${platform}|${'UCqAhGHG9d4KlOZUCUQc4-ww'}`],
         amount: amount,
         platform: platform
-    } as TipRequest;
+    } as RainRequest;
 
-    const result = await postRequest<any>(endpoints.api.transaction.path('tip'), issuerId, data);
+    const result = await postRequest<any>(endpoints.api.transaction.path('rain'), issuerId, data);
     console.log(result);
     return {
-        message: `tip command executed`,
+        message: `rain command executed`,
     };
 }

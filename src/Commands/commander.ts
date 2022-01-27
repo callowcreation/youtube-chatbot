@@ -1,5 +1,7 @@
 import { MessageItem } from "../Common/chat-poller";
 import helpCommand from "./help-command";
+import rainCommand from "./rain-command";
+import sendCommand from "./send-command";
 import tipCommand from "./tip-command";
 
 //$send d4rkcide 10 PLAY usd 
@@ -11,16 +13,16 @@ export async function executeCommand(message_item: MessageItem) {
     const commandName = splits[0];
     switch (commandName) {
         case '$send': {
-            throw new Error(`${commandName} is not implemented`);
+            return sendCommand(message_item);
         } break;
         case '$donate': {
-            throw new Error(`${commandName} is not implemented`);
+            return tipCommand(message_item);
         } break;
         case '$tip': {
             return tipCommand(message_item);
         } break;
         case '$airdrop': {
-            throw new Error(`${commandName} is not implemented`);
+            return rainCommand(message_item);
         } break;
         case '$coin': {
             throw new Error(`${commandName} is not implemented`);
