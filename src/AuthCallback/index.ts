@@ -2,8 +2,6 @@ import { AzureFunction, Context, HttpRequest } from "@azure/functions"
 
 import { google } from 'googleapis';
 import { secretStore } from "../Common/secret-store";
-import { createUserItem, getUserItem, updateUserItem } from "../DataAccess/user-item-repository";
-import { UserItemRecord } from "../Models/user-item-record";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -39,7 +37,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                 const streamInfo = json.data.items[0];
                 const channelId = streamInfo.id;
 
-                const userItemRecord = {
+                /*const userItemRecord = {
                     id: channelId,
                     expiryDate: token.expiry_date,
                     refreshToken: token.refresh_token,
@@ -58,7 +56,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                     }
                 } catch (err) {
                     console.error(err);
-                }
+                }*/
             } else {
                 console.warn(`Channel not found`);
             }

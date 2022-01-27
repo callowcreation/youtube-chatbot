@@ -1,5 +1,4 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
-import { UserItemRecord } from "../Models/user-item-record";
 import { getChannelId } from "../Common/Utils";
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
@@ -17,7 +16,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 		access_token: 'secret-code-do-not-look',
 		scope: 'http://youtube-api-scope',
 		tokenType: 'Bearer'
-	} as UserItemRecord;
+	} /*as UserItemRecord*/;
 
 	context.bindings.userItemRecord = userItemRecord;
 

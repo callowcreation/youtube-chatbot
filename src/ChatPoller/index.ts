@@ -3,7 +3,6 @@ import { AzureFunction, Context } from "@azure/functions"
 import { google } from 'googleapis';
 
 import { deleteLiveItem, getAllLiveItems, updateLiveItem } from "../DataAccess/live-item-repository";
-import { getUserItem } from "../DataAccess/user-item-repository";
 import { ChatPoller, ChatResponse, Credentials } from "../Common/chat-poller";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { LiveChatError } from '../Common/live-chat-error';
@@ -11,7 +10,10 @@ import { secretStore } from "../Common/secret-store";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
-
+const SCOPES = [
+    'https://www.googleapis.com/auth/youtube.readonly',
+    'https://www.googleapis.com/auth/youtube',
+];
 const clientSecret = process.env.client_secret;
 const clientId = process.env.client_id;
 const redirectUri = process.env.redirect_uri;
@@ -46,19 +48,17 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         for (let i = 0; i < liveItems.length; i++) {
             const liveItem = liveItems[i] as LiveItemRecord;
 
-            promises.push(getUserItem(liveItem.id)
-                .then(userItem => secretStore.get(liveItem.id)
-                    .then(secret => ({
-                        live_item: liveItem,
-                        credentials: {
-                            expiry_date: userItem.expiryDate,
-                            refresh_token: userItem.refreshToken,
-                            scope: userItem.scope,
-                            token_type: userItem.tokenType,
-                            access_token: secret.value
-                        }
-                    }) as ChatPoller)
-                )
+            promises.push(secretStore.get(liveItem.id)
+                .then(secret => ({
+                    live_item: liveItem,
+                    credentials: {
+                        //expiry_date: userItem.expiryDate,
+                        refresh_token: '1//06zpNYi3ndyOiCgYIARAAGAYSNwF-L9IrJ0p_9a8omGv3nxPdsULrSvs-1P5c0ncaYPg1MTDmLAGykMBH77K5C21lRgJjNVShBBk',
+                        scope: SCOPES.join(' '),
+                        token_type: 'Bearer',
+                        access_token: secret.value
+                    }
+                }) as ChatPoller)
             );
         }
         const results = (await Promise.all(promises)) as ChatPoller[];

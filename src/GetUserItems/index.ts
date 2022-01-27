@@ -1,10 +1,9 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
-import { getAllUserItems } from "../DataAccess/user-item-repository";
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
     console.info('Get all user items started.');
 
-    const userItems = await getAllUserItems();
+    const userItems = [];
 
     if (userItems && userItems.length > 0) {
         context.res = {

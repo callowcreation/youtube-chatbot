@@ -14,6 +14,7 @@
     "@azure/keyvault-secrets": "^4.3.0",
     "crypto": "^1.0.1",
     "googleapis": "^92.0.0",
+    "jsonwebtoken": "^8.5.1",
     "node-fetch": "^2.6.0"
   },
   "devDependencies": {
