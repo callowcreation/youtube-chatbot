@@ -3,13 +3,14 @@ import { AzureFunction, Context } from "@azure/functions"
 import { google } from 'googleapis';
 
 import { deleteLiveItem, getAllLiveItems, updateLiveItem } from "../DataAccess/live-item-repository";
-import { ChatPoller, ChatResponse, Credentials, MessageItem } from "../Common/chat-poller";
+import { ChatPoller, ChatResponse, MessageItem } from "../Common/chat-poller";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { LiveChatError } from '../Common/live-chat-error';
-import { secretStore } from "../Common/secret-store";
+import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
 import { executeCommand } from "../Commands/commander";
 import { getRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
+import { Credentials } from "../Common/token-item";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -22,7 +23,28 @@ const clientId = process.env.client_id;
 const redirectUri = process.env.redirect_uri;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
-async function getLiveChatMessages(result: ChatPoller) {
+async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller> {
+    const keyVaultSecret = await secretStore.getJwt(liveItem.id)
+        .catch(err => {
+            if (err.statusCode !== 404)
+                throw err;
+            console.log(err);
+            return { value: null };
+        });
+
+    if (keyVaultSecret.value !== null) {
+        const payload = verifyAndDecodeJwt(keyVaultSecret.value) as Credentials;
+        const credentials: Credentials = {
+            ...payload
+        };
+        return {
+            live_item: liveItem,
+            credentials
+        } as ChatPoller;
+    }
+}
+
+async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
     oauth2Client.setCredentials(result.credentials);
     return service.liveChatMessages.list({
         auth: oauth2Client,
@@ -32,7 +54,7 @@ async function getLiveChatMessages(result: ChatPoller) {
     }).then(json => ({
         live_item: result.live_item as LiveItemRecord,
         data: json.data
-    }) as ChatResponse)
+    }) as ChatResponse);
 }
 
 const timerTrigger: AzureFunction = async function (context: Context, myTimer: any): Promise<void> {
@@ -50,18 +72,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         const promises = [];
         for (let i = 0; i < liveItems.length; i++) {
             const liveItem = liveItems[i] as LiveItemRecord;
-
-            promises.push(secretStore.get(liveItem.id)
-                .then(secret => ({
-                    live_item: liveItem,
-                    credentials: {
-                        refresh_token: '1//06zpNYi3ndyOiCgYIARAAGAYSNwF-L9IrJ0p_9a8omGv3nxPdsULrSvs-1P5c0ncaYPg1MTDmLAGykMBH77K5C21lRgJjNVShBBk',
-                        scope: SCOPES.join(' '),
-                        token_type: 'Bearer',
-                        access_token: secret.value
-                    }
-                }) as ChatPoller)
-            );
+            promises.push(getLiveCredentials(liveItem));
         }
         const results = (await Promise.all(promises)) as ChatPoller[];
 
@@ -140,3 +151,4 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 };
 
 export default timerTrigger;
+

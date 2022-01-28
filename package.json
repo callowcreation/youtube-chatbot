@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@azure/functions": "^1.0.2-beta2",
+    "@types/jsonwebtoken": "^8.5.8",
     "@types/node": "^17.0.5",
     "typescript": "^3.3.3"
   },

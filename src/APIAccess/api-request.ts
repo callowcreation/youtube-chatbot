@@ -33,19 +33,14 @@ const cached = new Cached();
 }*/
 
 // Verify the header and the enclosed JWT.
-function verifyAndDecode(token) {
+function verifyAndDecode(jwt_token) {
     const jsonwebtoken = require('jsonwebtoken');
     const extension_secret = Buffer.from(process.env.client_secret, 'base64');
-    return jsonwebtoken.verify(token, extension_secret, { algorithms: ['HS256'] });
+    return jsonwebtoken.verify(jwt_token, extension_secret, { algorithms: ['HS256'] });
 }
 
-function makeToken(cached) {
+function makeJwtToken(payload) {
     const jsonwebtoken = require('jsonwebtoken');
-    const payload = {
-        expires_in: cached.expires_in,
-        access_token: cached.access_token,
-        expires_time: cached.expires_time,
-    };
     const extension_secret = Buffer.from(process.env.client_secret, 'base64');
     return jsonwebtoken.sign(payload, extension_secret, { algorithm: 'HS256' });
 }
@@ -58,15 +53,15 @@ async function getCachedToken(client_credentials) {
     const secondsOff = 60;
 
     try {
-        const apiToken = await secretStore.get('api-token');
+        const keyVaultSecret = await secretStore.getJwt('api-token');
 
-        const payload = verifyAndDecode(apiToken.value);
+        const payload = verifyAndDecode(keyVaultSecret.value);
         cached.access_token = payload.access_token;
         cached.expires_in = payload.expires_in;
         cached.expires_time = payload.expires_time;
     } catch (err) {
         console.log(err);
-        if(err.statusCode !== 404) throw err;
+        if (err.statusCode !== 404) throw err;
     }
 
     if (seconds > cached.expires_time) {
@@ -75,8 +70,16 @@ async function getCachedToken(client_credentials) {
         cached.expires_in = result.expires_in;
         cached.expires_time = (seconds + cached.expires_in) - secondsOff;
 
-        const jwt = makeToken(cached);
-        await secretStore.set('api-token', jwt);
+        const payload = {
+            expires_in: cached.expires_in,
+            access_token: cached.access_token,
+            expires_time: cached.expires_time,
+        };
+        const expiresOn = new Date();
+        expiresOn.setSeconds(expiresOn.getSeconds() + cached.expires_in);
+
+        const jwt = makeJwtToken(payload);
+        await secretStore.setJwt('api-token', jwt, { expiresOn });
     }
 
     return { access_token: cached.access_token };
@@ -148,7 +151,7 @@ export async function getRequest<T>(url): Promise<T> {
     return _request<T>('GET', url, null);
 }
 
-export async function postRequest<T>(url, youtubeId, data : WithdrawRequest | RainRequest | TipRequest | UpdateTokenRequest): Promise<T> {
+export async function postRequest<T>(url, youtubeId, data: WithdrawRequest | RainRequest | TipRequest | UpdateTokenRequest): Promise<T> {
     return _request<T>('POST', url, youtubeId, data);
 }
 

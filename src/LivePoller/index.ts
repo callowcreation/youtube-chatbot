@@ -1,13 +1,14 @@
 import { AzureFunction, Context } from "@azure/functions"
 
 import { google } from 'googleapis';
+import fetch from 'node-fetch';
 
-import { TokenItem } from "../Common/token-item";
-import { createLiveItem, deleteLiveItem, getLiveItem } from "../DataAccess/live-item-repository";
+import { Credentials } from "../Common/token-item";
+import { createLiveItem, deleteLiveItem, getLiveItem, updateLiveItem } from "../DataAccess/live-item-repository";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { ApiUser } from "../APIAccess/api-interfaces";
-import { secretStore } from "../Common/secret-store";
+import { makeJwtToken, secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
 import { endpoints } from '../APIAccess/endpoints';
 
 const OAuth2 = google.auth.OAuth2;
@@ -20,6 +21,68 @@ const clientSecret = process.env.client_secret;
 const clientId = process.env.client_id;
 const redirectUri = process.env.redirect_uri;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
+
+
+async function getCredentials(youtubeId: string, youtubeRefreshToken: string): Promise<Credentials> {
+
+    const keyVaultSecret = await secretStore.getJwt(youtubeId)
+        .catch(err => {
+            if (err.statusCode !== 404)
+                throw err;
+            console.log(err);
+            return { value: null };
+        });
+
+    const credentials: Credentials = {
+        id: youtubeId,
+        refresh_token: youtubeRefreshToken,
+        scope: SCOPES.join(' '),
+        token_type: 'Bearer',
+        access_token: '',
+        expires_in: 0
+    };
+
+    if (keyVaultSecret.value === null) {
+
+        const result = await fetch('https://accounts.google.com/o/oauth2/token', {
+            method: 'POST',
+            headers: {
+                'Host': 'accounts.google.com',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                client_id: clientId,
+                client_secret: clientSecret,
+                grant_type: 'refresh_token',
+                refresh_token: youtubeRefreshToken
+            })
+        });
+
+        const json = (await result.json()) as Credentials;
+
+        credentials.refresh_token = youtubeRefreshToken;
+        credentials.access_token = json.access_token;
+        credentials.scope = json.scope;
+        credentials.token_type = json.token_type;
+        credentials.expires_in = json.expires_in;
+
+        const expiresOn = new Date();
+        expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
+
+        const payload = makeJwtToken(credentials);
+        await secretStore.setJwt(youtubeId, payload, { expiresOn });
+    } else {
+        const payload = verifyAndDecodeJwt(keyVaultSecret.value) as Credentials;
+
+        credentials.refresh_token = payload.refresh_token;
+        credentials.access_token = payload.access_token;
+        credentials.scope = payload.scope;
+        credentials.token_type = payload.token_type;
+        credentials.expires_in = payload.expires_in;
+    }
+
+    return credentials;
+}
 
 const timerTrigger: AzureFunction = async function (context: Context, myTimer: any): Promise<void> {
     var timeStamp = new Date().toISOString();
@@ -40,54 +103,35 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 
             const { userId, userIdentity: { youtubeId, youtubeRefreshToken } } = userItems[i];
             if (youtubeId === null || youtubeId === undefined) continue;
-            
-            const result = await postRequest(endpoints.api.user.path('updatetokens'), youtubeId, {
+
+            /*const result = await postRequest(endpoints.api.user.path('updatetokens'), youtubeId, {
                 tokens:[
                     {youtubeId, youtubeRefreshToken: '1//06zpNYi3ndyOiCgYIARAAGAYSNwF-L9IrJ0p_9a8omGv3nxPdsULrSvs-1P5c0ncaYPg1MTDmLAGykMBH77K5C21lRgJjNVShBBk'}
                 ]
             });
-            console.log(result);
-            
-            /*if(youtubeId) { // works
-                const item: ApiUser[] = await getRequest<ApiUser[]>(endpoints.api.user_lookup.path(`${platform}|${youtubeId}`));
-                console.log({ item });
+            console.log(result);*/
+
+            if (youtubeId && youtubeRefreshToken) {
+                try {
+                    promises.push(getCredentials(youtubeId, youtubeRefreshToken));
+                } catch (err) {
+                    if (err.statusCode !== 404) throw err;
+                    console.log(err);
+                }
             } else {
-                console.log(`User ${userId} has no youtube id`);
-            }*/
+                console.log(`User ${userId} has no youtube id or youtube refresh token`);
+            }
 
-
-            promises.push(
-                secretStore.get(youtubeId)
-                    .then(secret => {
-                        // check for expired access token (secret value) and refersh if needed
-                        return ({
-                            id: youtubeId,
-                            refresh_token: youtubeRefreshToken,
-                            scope: SCOPES.join(' '),
-                            token_type: 'Bearer',
-                            access_token: secret.value,
-                        })
-                    }).catch(err => {
-                        if(err.statusCode !== 404) throw err;
-                        console.log(err);
-                    })
-            );
         }
-        const results = await Promise.all(promises);
+        const results = (await Promise.all(promises)) as Credentials[];
 
         for (let i = 0; i < results.length; i++) {
-            const result = results[i];
-            if(result === undefined) continue;
-            const token = {
-                refresh_token: result.refresh_token,
-                scope: result.scope,
-                token_type: result.token_type,
-                access_token: result.value,
-            } as TokenItem;
-            oauth2Client.setCredentials(token);
+            const credentials = results[i];
+            if (credentials === undefined) continue;
+            oauth2Client.setCredentials(credentials);
 
             try {
-                const item = await getLiveItem(result.id);
+                const item = await getLiveItem(credentials.id);
 
                 const json = await service.liveBroadcasts.list({
                     auth: oauth2Client,
@@ -96,17 +140,21 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 });
 
                 if (json.data.items.length > 0) {
+                    const streamInfo = json.data.items[0];
+                    const { channelId, liveChatId } = streamInfo.snippet;
+
+                    const liveItem = {
+                        id: channelId,
+                        liveChatId: liveChatId
+                    } as LiveItemRecord;
+                    
                     if (item === null) {
-                        const streamInfo = json.data.items[0];
-                        const { channelId, liveChatId } = streamInfo.snippet;
-                        const liveItem = {
-                            id: channelId,
-                            liveChatId: liveChatId
-                        } as LiveItemRecord;
                         await createLiveItem(liveItem);
-                        console.log(`Created new ${result.id} is live`);
+                        console.log(`Created new ${credentials.id} is live`);
                     } else {
-                        console.log(`Live item exists for ${result.id}`);
+                        liveItem.pageToken = item.pageToken;
+                        await updateLiveItem(liveItem.id, liveItem);
+                        console.log(`Update live item for ${credentials.id}`);
                     }
                 } else { // stream may be offline
                     if (item !== null) {
@@ -125,3 +173,5 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 };
 
 export default timerTrigger;
+
+

@@ -1,10 +1,9 @@
-/**
- * NOTE: property case is important here
- */
-export interface TokenItem {
+
+export interface Credentials {
+	id?: string,
 	access_token: string;
 	refresh_token: string;
 	scope: string;
 	token_type: string;
-	expiry_date: number;
+	expires_in: number;
 }

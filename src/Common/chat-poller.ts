@@ -1,12 +1,6 @@
 import { LiveItemRecord } from "../Models/live-item-record";
+import { Credentials } from "./token-item";
 
-export interface Credentials {
-	access_token: string;
-	refresh_token: string;
-	scope: string;
-	token_type: string;
-	expiry_date: number;
-}
 
 export interface ChatPoller {
 	credentials: Credentials;
