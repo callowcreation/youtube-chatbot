@@ -46,15 +46,33 @@ async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller>
 
 async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
     oauth2Client.setCredentials(result.credentials);
-    return service.liveChatMessages.list({
-        auth: oauth2Client,
-        part: ['snippet'],
-        liveChatId: result.live_item.liveChatId,
-        pageToken: result.live_item.pageToken
-    }).then(json => ({
-        live_item: result.live_item as LiveItemRecord,
-        data: json.data
-    }) as ChatResponse);
+    try {
+
+        return service.liveChatMessages.list({
+            auth: oauth2Client,
+            part: ['snippet'],
+            liveChatId: result.live_item.liveChatId,
+            pageToken: result.live_item.pageToken
+        }).then(json => ({
+            live_item: result.live_item as LiveItemRecord,
+            data: json.data
+        }) as ChatResponse);
+    } catch (err) {
+        if (err.code === 403) {
+            const reason = err.errors[0].reason;
+            switch (reason) {
+                case 'liveChatEnded': {
+                    // remove item from db
+                    console.log(`Live chat ended removing ${result.live_item.id} item from database.`);
+                    await deleteLiveItem(result.live_item.id);
+                } break;
+                default: {
+                    // log error to db
+                    console.error(err);
+                } break;
+            }
+        }
+    }
 }
 
 const timerTrigger: AzureFunction = async function (context: Context, myTimer: any): Promise<void> {
@@ -97,7 +115,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     const messageItems = data.items.map(x => ({
                         snippet: x.snippet,
                         live_item: live_item
-                    }));
+                    })) as MessageItem[];
                     chatMessageItems.push(...messageItems);
                 }
                 if (data.nextPageToken) {
@@ -112,23 +130,12 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 if (err instanceof LiveChatError) {
                     console.log(err.message);
                     await deleteLiveItem(live_item.id);
-                } else if (err.code === 403) {
-                    const reason = err.errors[0].reason;
-                    switch (reason) {
-                        case 'liveChatEnded': {
-                            // remove item from db
-                            console.log(`Live chat ended removing ${live_item.id} item from database.`);
-                            await deleteLiveItem(live_item.id);
-                        } break;
-                        default: {
-                            // log error to db
-                            console.error(err);
-                        } break;
-                    }
+                } else {
+                    // log error
                 }
             }
         }
-        
+
         //getRequest('http://rallydataservice.azurewebsites.net/api/coin/list')
         for (let i = 0; i < chatMessageItems.length; i++) {
             const chatMessageItem = chatMessageItems[i];
@@ -139,6 +146,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     console.log(result);
                 } catch (err) {
                     console.log(err);
+                    // log error
                 }
             } else {
                 console.log(`Just a message: ${message}`);
