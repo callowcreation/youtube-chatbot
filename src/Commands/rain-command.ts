@@ -15,23 +15,22 @@ export default async function (message_item: MessageItem) {
     const [, name, amount, coin, count] = regExpSplit.map(x => x.trim());
 
     const issuerId = message_item.snippet.authorChannelId;
+    
+    if(+count > 10) throw new Error(`Max airdrop users is ${10} input ${+count} is to high`)
+    const chatters = await getAllChatterItems(issuerId, message_item.live_item.id, (+count <= 10 ? +count : 10));
+    console.log({ chatters });
+    if(chatters.length === 0) throw new Error(`No recent chatters for ${message_item.snippet.displayMessage}`);
+    const recipientIds = chatters.map(x => `${platform}|${x.id}`);
 
     if (coin === undefined) throw new Error(`A coin is required`);
     const coinList = (await getRequest(endpoints.api.coin_list.path())) as string[];
     const coins = coinList.map(x => x.toLowerCase());
     if (coins.includes(coin.toLowerCase()) === false) throw new Error(`Coin ${coin} is not supported`);
 
-    if(+count > 10) throw new Error(`Max airdrop users is ${10} input ${+count} is to high`)
-    const chatters = await getAllChatterItems(issuerId, message_item.live_item.id, (+count <= 10 ? +count : 10));
-    console.log({ chatters });
-
-    if(chatters.length === 0) throw new Error(`No recent chatters for ${message_item.snippet.displayMessage}`);
-    
-    const platformIds = chatters.map(x => `${platform}|${x.id}`);
     const data = {
         token: coin,
         from: `${platform}|${issuerId}`,
-        to: platformIds,
+        to: recipientIds.map(x => `${platform}|${x}`),
         amount: +amount,
         platform: platform
     } as RainRequest;

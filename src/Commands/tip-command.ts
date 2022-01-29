@@ -14,6 +14,7 @@ export default async function (message_item: MessageItem) {
 	const [, name, amount, coin] = regExpSplit.map(x => x.trim());
     
     const issuerId = message_item.snippet.authorChannelId;
+    
     const recipientId = message_item.live_item.id;
 
     if(issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);
