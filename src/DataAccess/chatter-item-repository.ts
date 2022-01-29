@@ -12,8 +12,6 @@ function getCosmosDbContainer() {
 }
 
 export async function getAllChatterItems(issuerId: string, channelId: string, limit: number): Promise<ChatterItemRecord[]> {
-    // Limit = 11 is one more that 10 which is max
-    // this is to remove the person sending the command and have a max of 10 chatters
     const querySpec = {
         query: `SELECT * from c WHERE c.channelId = '${channelId}' AND c.id != '${issuerId}' ORDER BY c._ts DESC OFFSET 0 LIMIT ${limit}`
     };
@@ -35,59 +33,6 @@ export async function getAllChatterItems(issuerId: string, channelId: string, li
     }) as ChatterItemRecord[];
 }
 
-export async function getChatterItem(id: string): Promise<ChatterItemRecord> {
-    const querySpec = {
-        query: `SELECT * from c WHERE c.id = '${id}'`
-    };
-
-    const container = getCosmosDbContainer();
-    const { resources: chatterItems } = await container.items
-        .query(querySpec)
-        .fetchAll();
-
-    if (chatterItems.length === 1) {
-        const item = chatterItems[0];
-        return {
-            id: item.id,
-            channelId: item.channelId,
-            liveChatId: item.liveChatId,
-            displayName: item.displayName,
-            displayMessage: item.displayMessage
-        } as ChatterItemRecord;
-    } else {
-        return null;
-    }
-}
-
-export async function deleteChatterItem(id: string): Promise<any> {
-    const container = getCosmosDbContainer();
-    const item = container.item(id, id);
-    const result = await item.delete().catch(e => {
-        console.log(e);
-    });
-    return result;
-}
-
-export async function updateChatterItem(id: string, chatterItem: ChatterItemRecord): Promise<ChatterItemRecord> {
-    const container = getCosmosDbContainer();
-
-    try {
-        const { resource: updatedItem } = await container
-            .item(id)
-            .replace(chatterItem);
-        return updatedItem;
-    } catch (err) {
-        console.log(err);
-        throw err;
-    }
-}
-
-export async function createChatterItem(chatterItem: ChatterItemRecord) {
-    const container = getCosmosDbContainer();
-    const { resource: createdItem } = await container.items.create(chatterItem);
-    return createdItem;
-}
-
 export async function createManyChatterItems(chatterItems: ChatterItemRecord[]) {
     const container = getCosmosDbContainer();
 
@@ -103,8 +48,6 @@ export async function createManyChatterItems(chatterItems: ChatterItemRecord[]) 
             }
         } as OperationInput;
     }) as OperationInput[];
-
-    
 
     const results = await container.items.bulk(operations);
     return results;

@@ -111,6 +111,9 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             });
             console.log(result);*/
 
+            /*const result = await getRequest(endpoints.api.user_lookup.path(`youtubeusername|callowcreation`));
+            console.log(result);*/
+
             if (youtubeId && youtubeRefreshToken) {
                 try {
                     promises.push(getCredentials(youtubeId, youtubeRefreshToken));

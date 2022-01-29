@@ -1,4 +1,5 @@
 import { MessageItem } from "../Common/chat-poller";
+import botCommand from "./bot-command";
 import helpCommand from "./help-command";
 import rainCommand from "./rain-command";
 import sendCommand from "./send-command";
@@ -28,10 +29,11 @@ export async function executeCommand(message_item: MessageItem) {
             throw new Error(`${commandName} is not implemented`);
         } break;
         case '$bot': {
-            throw new Error(`${commandName} is not implemented`);
+            return botCommand(message_item);
         } break;
         case '$commands': {
-            return helpCommand(message_item);
+            throw new Error(`${commandName} is not implemented`);
+            //return helpCommand(message_item);
         } break;
 
         default: {

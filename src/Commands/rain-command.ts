@@ -21,6 +21,7 @@ export default async function (message_item: MessageItem) {
     const coins = coinList.map(x => x.toLowerCase());
     if (coins.includes(coin.toLowerCase()) === false) throw new Error(`Coin ${coin} is not supported`);
 
+    if(+count > 10) throw new Error(`Max airdrop users is ${10} input ${+count} is to high`)
     const chatters = await getAllChatterItems(issuerId, message_item.live_item.id, (+count <= 10 ? +count : 10));
     console.log({ chatters });
 

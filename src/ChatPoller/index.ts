@@ -13,6 +13,8 @@ import { endpoints } from "../APIAccess/endpoints";
 import { Credentials } from "../Common/token-item";
 import { createManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
+import { getAllOmittedItems, getOmittedItem, getOmittedItems } from "../DataAccess/omitted-item-repository";
+import { OmittedItemRecord } from "../Models/omitted-item-record";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -148,9 +150,21 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 displayMessage: x.snippet.displayMessage
             } as ChatterItemRecord;
         });
-        if(chatterItemRecords.length > 0) {
-            const result = await createManyChatterItems(chatterItemRecords);
-            console.log({ result });
+
+        if (chatterItemRecords.length > 0) {
+
+            const promises: Promise<string>[] = [];
+            for (let i = 0; i < chatterItemRecords.length; i++) {
+                const { displayName, channelId } = chatterItemRecords[i];
+                promises.push(getOmittedItem(displayName, channelId).then(x => x ? x.id : ''));
+            }
+            const omittedResults = await Promise.all(promises);
+
+            const withOmittedItems: ChatterItemRecord[] = chatterItemRecords.filter(x => !omittedResults.includes(x.displayName));
+            if (withOmittedItems.length > 0) {
+                const result = await createManyChatterItems(withOmittedItems);
+                console.log({ result });
+            }
         }
 
         //getRequest('http://rallydataservice.azurewebsites.net/api/coin/list')
