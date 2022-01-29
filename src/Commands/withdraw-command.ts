@@ -1,25 +1,31 @@
 
 import { WithdrawRequest } from "../APIAccess/api-interfaces";
-import { platform, postRequest } from "../APIAccess/api-request";
+import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Common/chat-poller";
 
 export default async function (message_item: MessageItem) {
 
-    const splits = message_item.snippet.displayMessage.split(' ');
     // {widthdraw} {amount} {coin}
-    const commandName = splits[0];
-    const amount = +splits[1];
-    const coin = splits[2];
-    const usd = splits[3];
+    const regExp = RegExp(/(\$withdraw) (\d+) (\w+)/);
+    const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
+
+	if(regExpSplit === null || regExpSplit.length !== 4) throw new Error(`Withdraw command ${message_item.snippet.displayMessage} is malformed.`);
+	const [, name, amount, coin] = regExpSplit.map(x => x.trim());
+
     const issuerId = message_item.snippet.authorChannelId;
     //const recipientId = 'UCqAhGHG9d4KlOZUCUQc4-ww';
     const recipientId = message_item.live_item.id;
 
-    if(isNaN(amount)) throw new Error(`Amount ${splits[1]} is not a number`);
+    if(isNaN(+amount)) throw new Error(`Amount ${amount} is not a number`);
+    
+    if(coin === undefined) throw new Error(`A coin is required`);
+    const coinList = (await getRequest(endpoints.api.coin_list.path())) as string[];
+    const coins = coinList.map(x => x.toLowerCase());
+    if(coins.includes(coin.toLowerCase()) === false) throw new Error(`Coin ${coin} is not supported`);
 
     const data = {
-        token: 'DTQ',
+        token: coin,
         amount: 0.0, //0.01,
         platform: platform
     } as WithdrawRequest;

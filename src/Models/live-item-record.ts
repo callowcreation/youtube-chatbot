@@ -1,5 +1,5 @@
 export interface LiveItemRecord {
 	id: string;
-	liveChatId: string, 
+	liveChatId: string;
 	pageToken: null;
 }

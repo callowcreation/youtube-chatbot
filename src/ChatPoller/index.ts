@@ -11,6 +11,8 @@ import { executeCommand } from "../Commands/commander";
 import { getRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
 import { Credentials } from "../Common/token-item";
+import { createManyChatterItems } from "../DataAccess/chatter-item-repository";
+import { ChatterItemRecord } from "../Models/chatter-item-record";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -50,7 +52,7 @@ async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
 
         return service.liveChatMessages.list({
             auth: oauth2Client,
-            part: ['snippet'],
+            part: ['snippet', 'authorDetails'],
             liveChatId: result.live_item.liveChatId,
             pageToken: result.live_item.pageToken
         }).then(json => ({
@@ -113,6 +115,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 if (data.items.length > 0) {
                     console.log(data.items);
                     const messageItems = data.items.map(x => ({
+                        authorDetails: x.authorDetails,
                         snippet: x.snippet,
                         live_item: live_item
                     })) as MessageItem[];
@@ -134,6 +137,20 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     // log error
                 }
             }
+        }
+
+        const chatterItemRecords = chatMessageItems.map(x => {
+            return {
+                id: x.snippet.authorChannelId,
+                channelId: x.live_item.id,
+                liveChatId: x.live_item.liveChatId,
+                displayName: x.authorDetails.displayName,
+                displayMessage: x.snippet.displayMessage
+            } as ChatterItemRecord;
+        });
+        if(chatterItemRecords.length > 0) {
+            const result = await createManyChatterItems(chatterItemRecords);
+            console.log({ result });
         }
 
         //getRequest('http://rallydataservice.azurewebsites.net/api/coin/list')

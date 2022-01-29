@@ -14,9 +14,15 @@ export interface ChatSnippet {
 	publishedAt: string;
 }
 
+export interface ChatAuthorDetails {
+	channelId: string;
+	displayName: string;
+}
+
 export interface ChatItem {
 	id: string;
 	snippet: ChatSnippet;
+	authorDetails: ChatAuthorDetails;
 }
 
 export interface ChatResponse {
@@ -31,4 +37,5 @@ export interface ChatResponse {
 export interface MessageItem {
 	live_item: LiveItemRecord;
 	snippet: ChatSnippet;
+	authorDetails: ChatAuthorDetails;
 }
