@@ -6,7 +6,7 @@ import { MessageItem } from "../Common/chat-poller";
 
 export default async function (message_item: MessageItem) {
 
-    // {tip} {amount} {coin} {usd?}
+    // {tip} {amount} {coin}
 	const regExp = RegExp(/(\$tip|\$donate) (\d+) (\w+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
@@ -14,10 +14,8 @@ export default async function (message_item: MessageItem) {
 	const [, name, amount, coin] = regExpSplit.map(x => x.trim());
     
     const issuerId = message_item.snippet.authorChannelId;
-    //const recipientId = 'UCqAhGHG9d4KlOZUCUQc4-ww';
     const recipientId = message_item.live_item.id;
 
-    if(isNaN(+amount)) throw new Error(`Amount ${amount} is not a number`);
     if(issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);
     
     if(coin === undefined) throw new Error(`A coin is required`);

@@ -14,11 +14,7 @@ export default async function (message_item: MessageItem) {
 	const [, name, amount, coin] = regExpSplit.map(x => x.trim());
 
     const issuerId = message_item.snippet.authorChannelId;
-    //const recipientId = 'UCqAhGHG9d4KlOZUCUQc4-ww';
-    const recipientId = message_item.live_item.id;
 
-    if(isNaN(+amount)) throw new Error(`Amount ${amount} is not a number`);
-    
     if(coin === undefined) throw new Error(`A coin is required`);
     const coinList = (await getRequest(endpoints.api.coin_list.path())) as string[];
     const coins = coinList.map(x => x.toLowerCase());
@@ -26,7 +22,7 @@ export default async function (message_item: MessageItem) {
 
     const data = {
         token: coin,
-        amount: 0.0, //0.01,
+        amount: +amount, //0.01,
         platform: platform
     } as WithdrawRequest;
 

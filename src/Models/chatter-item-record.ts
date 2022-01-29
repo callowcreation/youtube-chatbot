@@ -4,5 +4,4 @@ export interface ChatterItemRecord {
 	liveChatId: string;
 	displayName: string;
 	displayMessage: string;
-	timestamp: number;
 }

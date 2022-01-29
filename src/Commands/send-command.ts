@@ -29,10 +29,8 @@ export default async function (message_item: MessageItem) {
 	const [, name, username, amount, coin] = regExpSplit;
 
     const issuerId = message_item.snippet.authorChannelId;
-    //const recipientId = 'UCqAhGHG9d4KlOZUCUQc4-ww';
     const recipientId = 'get from youtube api request';
 
-    if (isNaN(+amount)) throw new Error(`Amount ${amount} is not a number`);
     if (issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);
 
     if (coin === undefined) throw new Error(`A coin is required`);

@@ -11,9 +11,11 @@ function getCosmosDbContainer() {
     return container;
 }
 
-export async function getAllChatterItems(channelId: string): Promise<ChatterItemRecord[]> {
+export async function getAllChatterItems(issuerId: string, channelId: string, limit: number): Promise<ChatterItemRecord[]> {
+    // Limit = 11 is one more that 10 which is max
+    // this is to remove the person sending the command and have a max of 10 chatters
     const querySpec = {
-        query: `SELECT * from c WHERE c.channelId = '${channelId}'`
+        query: `SELECT * from c WHERE c.channelId = '${channelId}' AND c.id != '${issuerId}' ORDER BY c._ts DESC OFFSET 0 LIMIT ${limit}`
     };
 
     const container = getCosmosDbContainer();
@@ -26,7 +28,9 @@ export async function getAllChatterItems(channelId: string): Promise<ChatterItem
             id: item.id,
             channelId: item.channelId,
             liveChatId: item.liveChatId,
-            timestamp: item._ts
+            displayName: item.displayName,
+            displayMessage: item.displayMessage,
+            _ts: new Date(+item._ts * 1000).toTimeString()
         } as ChatterItemRecord;
     }) as ChatterItemRecord[];
 }
@@ -47,7 +51,8 @@ export async function getChatterItem(id: string): Promise<ChatterItemRecord> {
             id: item.id,
             channelId: item.channelId,
             liveChatId: item.liveChatId,
-            timestamp: item._ts
+            displayName: item.displayName,
+            displayMessage: item.displayMessage
         } as ChatterItemRecord;
     } else {
         return null;
