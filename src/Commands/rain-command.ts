@@ -4,6 +4,7 @@ import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { getAllChatterItems } from "../DataAccess/chatter-item-repository";
+import { CommandError, CommandErrorCode } from "../Errors/command-error";
 
 export default async function (message_item: MessageItem) {
 
@@ -11,7 +12,10 @@ export default async function (message_item: MessageItem) {
     const regExp = RegExp(/(\$airdrop) (\d+) (\w+) (\d+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
-    if (regExpSplit === null || regExpSplit.length !== 5) throw new Error(`Airdrop command ${message_item.snippet.displayMessage} is malformed.`);
+    if (regExpSplit === null || regExpSplit.length !== 5) {
+        const message = `Airdrop command ${message_item.snippet.displayMessage} is malformed. Here is the format $airdrop {amount} {type of coin} {number of people to airdrop on (max 10)}. Example: $airdrop 25 DTQ 5 (each person gets 5 DTQ)`;
+        throw new CommandError(message, CommandErrorCode.Malformed, true);
+    }
     const [, name, amount, coin, count] = regExpSplit.map(x => x.trim());
 
     const issuerId = message_item.snippet.authorChannelId;

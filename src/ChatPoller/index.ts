@@ -15,6 +15,7 @@ import { createManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
 import { getAllOmittedItems, getOmittedItem, getOmittedItems } from "../DataAccess/omitted-item-repository";
 import { OmittedItemRecord } from "../Models/omitted-item-record";
+import { CommandError, CommandErrorCode } from "../Errors/command-error";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -175,8 +176,40 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     const result = await executeCommand(chatMessageItem);
                     console.log(result);
                 } catch (err) {
-                    console.log(err);
-                    // log error
+                    if (err instanceof CommandError) {
+                        console.log(err.message);
+                        switch (err.code) {
+                            case CommandErrorCode.Malformed: {
+
+                            } break;
+
+                            default: {
+
+                            } break;
+                        }
+                        if (err.send === true) {
+                            service.liveChatMessages.insert({
+                                auth: oauth2Client,
+                                part: ['snippet'],
+                                requestBody: {
+                                    snippet: {
+                                        liveChatId: chatMessageItem.live_item.liveChatId,
+                                        type: "textMessageEvent",
+                                        textMessageDetails: {
+                                            messageText: `@${chatMessageItem.authorDetails.displayName} ${err.message}`
+                                        }
+                                    }
+                                }
+                            }).then(json => {
+                                console.log({ json });
+                            }).catch(e => {
+                                console.error(e);
+                            });
+                        }
+                    } else {
+                        // log error
+                        console.error(err);
+                    }
                 }
             } else {
                 console.log(`Just a message: ${message}`);

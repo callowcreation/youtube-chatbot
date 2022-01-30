@@ -7,6 +7,7 @@ import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
 import { Credentials } from "../Interfaces/credentials-interface";
+import { CommandError, CommandErrorCode } from '../Errors/command-error';
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -37,7 +38,10 @@ export default async function (message_item: MessageItem) {
     const regExp = RegExp(/(\$send) @?([\w\s]+) (\d+) (\w+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
-    if (regExpSplit === null || regExpSplit.length !== 5) throw new Error(`Send command ${message_item.snippet.displayMessage} is malformed.`);
+    if (regExpSplit === null || regExpSplit.length !== 5) {
+        const message = `Send command ${message_item.snippet.displayMessage} is malformed. Here is the format $send {username} {amount} {type of coin}. Example: $send d4rkcide 10 PLAY`;
+        throw new CommandError(message, CommandErrorCode.Malformed, true);
+    }
     const [, name, username, amount, coin] = regExpSplit;
 
     const issuerId = message_item.snippet.authorChannelId;

@@ -6,6 +6,7 @@ import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { getAllChatterItems } from "../DataAccess/chatter-item-repository";
 import { createOmittedItem } from "../DataAccess/omitted-item-repository";
 import { OmittedItemRecord } from "../Models/omitted-item-record";
+import { CommandError, CommandErrorCode } from "../Errors/command-error";
 
 export default async function (message_item: MessageItem) {
 
@@ -13,7 +14,10 @@ export default async function (message_item: MessageItem) {
     const regExp = RegExp(/(\$bot) @?([\w\s]+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
-    if (regExpSplit === null || regExpSplit.length !== 3) throw new Error(`Bot command ${message_item.snippet.displayMessage} is malformed.`);
+    if (regExpSplit === null || regExpSplit.length !== 3) {
+        const message = `Bot command ${message_item.snippet.displayMessage} is malformed. Here is the format $bot {username}. Example: $bot Nightbot`;
+        throw new CommandError(message, CommandErrorCode.Malformed, true);
+    }
     const [, name, username] = regExpSplit.map(x => x.trim());
 
     const issuerId = message_item.snippet.authorChannelId;
