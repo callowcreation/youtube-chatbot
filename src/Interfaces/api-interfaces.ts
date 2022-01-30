@@ -1,4 +1,3 @@
-
 export interface UserIdentity {
     userId: number;
     youtubeId: string;

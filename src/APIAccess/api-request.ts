@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { secretStore } from '../Common/secret-store';
+import { ApiRequestError } from '../Errors/api-request-error';
 import { RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
 
 export const platform: string = 'youtube';
@@ -10,7 +11,6 @@ function Cached() {
     this.expires_time = 0;
 };
 
-
 const client_credentials = {
     url: process.env.api_url,
     client_id: process.env.api_client_id,
@@ -19,18 +19,6 @@ const client_credentials = {
 }
 
 const cached = new Cached();
-
-
-
-/*function verifyAndGetIds({ headers }) {
-    try {
-        const payload = verifyAndDecode(headers.authorization);
-        const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload;
-        return { channelId, opaqueUserId };
-    } catch (error) {
-        console.error('-------> eRRor !!!!!!!!!!!!!! ', headers, error);
-    }
-}*/
 
 // Verify the header and the enclosed JWT.
 function verifyAndDecode(jwt_token) {
@@ -46,8 +34,6 @@ function makeJwtToken(payload) {
 }
 
 async function getCachedToken(client_credentials) {
-    //if (process.env.NODE_ENV === 'development') return { access_token: 'fake_corn_token' };
-
     const d = new Date();
     const seconds = Math.round(d.getTime() / 1000);
     const secondsOff = 60;
@@ -139,11 +125,17 @@ async function _request<T>(method: string, url: string, youtubeId: string, data?
         delete options.body;
     }
     return fetch(url, options)
-        .then(res => {
+        .then(async res => {
             if (!res.ok) {
-                throw new Error(res.statusText)
+
+                const contentType = res.headers.get('content-type');
+                if(contentType && contentType.includes('json')) {
+                    return res.json() as Promise<T>;
+                }
+                
+                throw new ApiRequestError(await res.text(), res.status, res.statusText);
             }
-            return res.json() as Promise<T>
+            return res.json() as Promise<T>;
         });
 }
 
