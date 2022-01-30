@@ -3,11 +3,11 @@ import { AzureFunction, Context } from "@azure/functions"
 import { google } from 'googleapis';
 import fetch from 'node-fetch';
 
-import { Credentials } from "../Common/token-item";
+import { Credentials } from "../Interfaces/credentials-interface";
 import { createLiveItem, deleteLiveItem, getLiveItem, updateLiveItem } from "../DataAccess/live-item-repository";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
-import { ApiUser } from "../APIAccess/api-interfaces";
+import { ApiUser } from "../Interfaces/api-interfaces";
 import { makeJwtToken, secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
 import { endpoints } from '../APIAccess/endpoints';
 

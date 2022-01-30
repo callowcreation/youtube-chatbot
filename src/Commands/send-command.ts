@@ -1,12 +1,12 @@
 
 import { google } from 'googleapis';
 
-import { ApiUser, TipRequest } from "../APIAccess/api-interfaces";
+import { ApiUser, TipRequest } from "../Interfaces/api-interfaces";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
-import { MessageItem } from "../Common/chat-poller";
+import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
-import { Credentials } from "../Common/token-item";
+import { Credentials } from "../Interfaces/credentials-interface";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -41,7 +41,7 @@ export default async function (message_item: MessageItem) {
     const [, name, username, amount, coin] = regExpSplit;
 
     const issuerId = message_item.snippet.authorChannelId;
-    
+
     const recipient = await lookupUserByName(username);
     if (recipient === null) throw new Error(`Recipient ${username} not found`);
     if (recipient.userIdentity.youtubeId === null) throw new Error(`Recipient ${username} not synced`);

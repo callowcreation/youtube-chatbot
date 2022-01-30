@@ -1,5 +1,4 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
-import { getChannelId } from "../Common/Utils";
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
 	console.log('HTTP trigger function processed a request.');

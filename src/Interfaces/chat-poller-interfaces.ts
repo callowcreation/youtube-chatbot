@@ -1,5 +1,5 @@
 import { LiveItemRecord } from "../Models/live-item-record";
-import { Credentials } from "./token-item";
+import { Credentials } from "./credentials-interface";
 
 
 export interface ChatPoller {

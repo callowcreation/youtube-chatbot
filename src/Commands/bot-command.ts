@@ -1,8 +1,8 @@
 
-import { RainRequest } from "../APIAccess/api-interfaces";
+import { RainRequest } from "../Interfaces/api-interfaces";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
-import { MessageItem } from "../Common/chat-poller";
+import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { getAllChatterItems } from "../DataAccess/chatter-item-repository";
 import { createOmittedItem } from "../DataAccess/omitted-item-repository";
 import { OmittedItemRecord } from "../Models/omitted-item-record";

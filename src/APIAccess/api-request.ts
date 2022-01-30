@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 import { secretStore } from '../Common/secret-store';
-import { RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from './api-interfaces';
+import { RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
 
 export const platform: string = 'youtube';
 

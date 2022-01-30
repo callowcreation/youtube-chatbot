@@ -1,8 +1,8 @@
 
-import { TipRequest } from "../APIAccess/api-interfaces";
+import { TipRequest } from "../Interfaces/api-interfaces";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
-import { MessageItem } from "../Common/chat-poller";
+import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 
 export default async function (message_item: MessageItem) {
 
@@ -14,7 +14,7 @@ export default async function (message_item: MessageItem) {
 	const [, name, amount, coin] = regExpSplit.map(x => x.trim());
     
     const issuerId = message_item.snippet.authorChannelId;
-    
+
     const recipientId = message_item.live_item.id;
 
     if(issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);

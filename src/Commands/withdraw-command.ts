@@ -1,8 +1,8 @@
 
-import { WithdrawRequest } from "../APIAccess/api-interfaces";
+import { WithdrawRequest } from "../Interfaces/api-interfaces";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
-import { MessageItem } from "../Common/chat-poller";
+import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 
 export default async function (message_item: MessageItem) {
 

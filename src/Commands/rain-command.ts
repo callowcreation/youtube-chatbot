@@ -1,8 +1,8 @@
 
-import { RainRequest } from "../APIAccess/api-interfaces";
+import { RainRequest } from "../Interfaces/api-interfaces";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
-import { MessageItem } from "../Common/chat-poller";
+import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { getAllChatterItems } from "../DataAccess/chatter-item-repository";
 
 export default async function (message_item: MessageItem) {
@@ -15,7 +15,7 @@ export default async function (message_item: MessageItem) {
     const [, name, amount, coin, count] = regExpSplit.map(x => x.trim());
 
     const issuerId = message_item.snippet.authorChannelId;
-    
+
     if(+count > 10) throw new Error(`Max airdrop users is ${10} input ${+count} is to high`)
     const chatters = await getAllChatterItems(issuerId, message_item.live_item.id, (+count <= 10 ? +count : 10));
     console.log({ chatters });

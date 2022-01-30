@@ -3,14 +3,14 @@ import { AzureFunction, Context } from "@azure/functions"
 import { google } from 'googleapis';
 
 import { deleteLiveItem, getAllLiveItems, updateLiveItem } from "../DataAccess/live-item-repository";
-import { ChatPoller, ChatResponse, MessageItem } from "../Common/chat-poller";
+import { ChatPoller, ChatResponse, MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { LiveItemRecord } from "../Models/live-item-record";
-import { LiveChatError } from '../Common/live-chat-error';
+import { LiveChatError } from '../Errors/live-chat-error';
 import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
 import { executeCommand } from "../Commands/commander";
 import { getRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
-import { Credentials } from "../Common/token-item";
+import { Credentials } from "../Interfaces/credentials-interface";
 import { createManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
 import { getAllOmittedItems, getOmittedItem, getOmittedItems } from "../DataAccess/omitted-item-repository";
@@ -167,7 +167,6 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             }
         }
 
-        //getRequest('http://rallydataservice.azurewebsites.net/api/coin/list')
         for (let i = 0; i < chatMessageItems.length; i++) {
             const chatMessageItem = chatMessageItems[i];
             const message = chatMessageItem.snippet.displayMessage;
