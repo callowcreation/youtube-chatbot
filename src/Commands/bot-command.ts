@@ -11,12 +11,13 @@ import { CommandError, CommandErrorCode } from "../Errors/command-error";
 export default async function (message_item: MessageItem) {
 
     // {bot} {username}
-    const regExp = RegExp(/(\$bot) @?([\w\s]+)/);
+    const regExp = RegExp(/\$(bot) @?([\w\s]+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
     if (regExpSplit === null || regExpSplit.length !== 3) {
-        const message = `Bot command ${message_item.snippet.displayMessage} is malformed. Here is the format $bot {username}. Example: $bot Nightbot`;
-        throw new CommandError(message, CommandErrorCode.Malformed, true);
+        const example = `Here is the format $bot {username}. Example: $bot Nightbot`;
+        const message = `Bot command ${message_item.snippet.displayMessage} is malformed. ${example}`;
+        throw new CommandError('bot', message, CommandErrorCode.Malformed, true);
     }
     const [, name, username] = regExpSplit.map(x => x.trim());
 

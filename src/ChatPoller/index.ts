@@ -177,16 +177,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     console.log(result);
                 } catch (err) {
                     if (err instanceof CommandError) {
-                        console.log(err.message);
-                        switch (err.code) {
-                            case CommandErrorCode.Malformed: {
-
-                            } break;
-
-                            default: {
-
-                            } break;
-                        }
+                        console.log(err);
                         if (err.send === true) {
                             service.liveChatMessages.insert({
                                 auth: oauth2Client,
@@ -196,7 +187,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                                         liveChatId: chatMessageItem.live_item.liveChatId,
                                         type: "textMessageEvent",
                                         textMessageDetails: {
-                                            messageText: `@${chatMessageItem.authorDetails.displayName} ${err.message}`
+                                            messageText: `@${chatMessageItem.authorDetails.displayName} $${err.name} command failed.  ${err.message}`
                                         }
                                     }
                                 }

@@ -8,12 +8,13 @@ import { CommandError, CommandErrorCode } from "../Errors/command-error";
 export default async function (message_item: MessageItem) {
 
     // {tip} {amount} {coin}
-	const regExp = RegExp(/(\$tip|\$donate) (\d+) (\w+)/);
+	const regExp = RegExp(/\$(tip|donate) (\d+) (\w+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
 	if(regExpSplit === null || regExpSplit.length !== 4) {
-        const message = `Tip command ${message_item.snippet.displayMessage} is malformed. Here is the format $tip/$donate {amount} {type of coin}. Example: $tip 10 RLY`;
-        throw new CommandError(message, CommandErrorCode.Malformed, true);
+        const example = `Here is the format $tip/$donate {amount} {type of coin}. Example: $tip 10 RLY`;
+        const message = `Tip command ${message_item.snippet.displayMessage} is malformed. ${example}`;
+        throw new CommandError('tip/donate', message, CommandErrorCode.Malformed, true);
     }
 	const [, name, amount, coin] = regExpSplit.map(x => x.trim());
     
@@ -21,12 +22,15 @@ export default async function (message_item: MessageItem) {
 
     const recipientId = message_item.live_item.id;
 
-    if(issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);
-    
-    if(coin === undefined) throw new Error(`A coin is required`);
+    if (issuerId === recipientId) {
+        throw new CommandError(name, `Issuer ${message_item.authorDetails.displayName} and recipient ${message_item.authorDetails.displayName} can not be the same.`, CommandErrorCode.IssuerIsRecipient, true);
+    }
+
     const coinList = (await getRequest(endpoints.api.coin_list.path())) as string[];
     const coins = coinList.map(x => x.toLowerCase());
-    if(coins.includes(coin.toLowerCase()) === false) throw new Error(`Coin ${coin} is not supported`);
+    if (coins.includes(coin.toLowerCase()) === false) {
+        throw new CommandError(name, `This type of coin, ${coin}, is not supported.`, CommandErrorCode.CoinNotSupported, true);
+    }
 
     const data = {
         token: coin,

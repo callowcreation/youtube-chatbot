@@ -35,28 +35,36 @@ async function lookupUserByName(username: string): Promise<ApiUser> {
 export default async function (message_item: MessageItem) {
 
     // {send} {username} {amount} {coin}
-    const regExp = RegExp(/(\$send) @?([\w\s]+) (\d+) (\w+)/);
+    const regExp = RegExp(/\$(send) @?([\w\s]+) (\d+) (\w+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
     if (regExpSplit === null || regExpSplit.length !== 5) {
-        const message = `Send command ${message_item.snippet.displayMessage} is malformed. Here is the format $send {username} {amount} {type of coin}. Example: $send d4rkcide 10 PLAY`;
-        throw new CommandError(message, CommandErrorCode.Malformed, true);
+        const example = `Here is the format $send {username} {amount} {type of coin}. Example: $send d4rkcide 10 PLAY`;
+        const message = `${message_item.snippet.displayMessage} is malformed. ${example}`;
+        throw new CommandError('send', message, CommandErrorCode.Malformed, true);
     }
     const [, name, username, amount, coin] = regExpSplit;
 
     const issuerId = message_item.snippet.authorChannelId;
 
     const recipient = await lookupUserByName(username);
-    if (recipient === null) throw new Error(`Recipient ${username} not found`);
-    if (recipient.userIdentity.youtubeId === null) throw new Error(`Recipient ${username} not synced`);
+    if (recipient === null) {
+        throw new CommandError(name, `Recipient ${username} not found. @${username} head here to register.`, CommandErrorCode.RecipientNotFount, true);
+    }    
+    if (recipient.userIdentity.youtubeId === null) {
+        throw new CommandError(name, `Recipient ${username} not synced. @${username} head here to register and sync with YouTube.`, CommandErrorCode.RecipientNotSynced, true);
+    }
     const recipientId = recipient.userIdentity.youtubeId;
 
-    if (issuerId === recipientId) throw new Error(`Issuer ${issuerId} and recipient ${recipientId} can not be the same`);
+    if (issuerId === recipientId) {
+        throw new CommandError(name, `Issuer ${message_item.authorDetails.displayName} and recipient ${message_item.authorDetails.displayName} can not be the same.`, CommandErrorCode.IssuerIsRecipient, true);
+    }
 
-    if (coin === undefined) throw new Error(`A coin is required`);
     const coinList = (await getRequest(endpoints.api.coin_list.path())) as string[];
     const coins = coinList.map(x => x.toLowerCase());
-    if (coins.includes(coin.toLowerCase()) === false) throw new Error(`Coin ${coin} is not supported`);
+    if (coins.includes(coin.toLowerCase()) === false) {
+        throw new CommandError(name, `This type of coin, ${coin}, is not supported.`, CommandErrorCode.CoinNotSupported, true);
+    }
 
     const data = {
         token: coin,
