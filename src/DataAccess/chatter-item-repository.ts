@@ -52,3 +52,26 @@ export async function createManyChatterItems(chatterItems: ChatterItemRecord[]) 
     const results = await container.items.bulk(operations);
     return results;
 }
+
+export async function deleteChatterItems(username: string): Promise<any> {
+    const container = getCosmosDbContainer();
+    const querySpec = {
+        query: `SELECT * from c WHERE c.displayName = '${username}'`
+    };
+
+    const { resources: chatterItems } = await container.items
+        .query(querySpec)
+        .fetchAll();
+
+    const operations: OperationInput[] = chatterItems.map(item => {
+        return {
+            operationType: 'Delete',
+            id: item.id,
+            partitionKey: item.channelId
+            
+        } as OperationInput;
+    }) as OperationInput[];
+
+    const results = await container.items.bulk(operations);
+    return results;
+}

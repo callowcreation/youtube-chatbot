@@ -8,12 +8,12 @@ import { CommandError, CommandErrorCode } from "../Errors/command-error";
 export default async function (message_item: MessageItem) {
 
     // {tip} {amount} {coin}
-	const regExp = RegExp(/\$(tip|donate) (\d+) (\w+)/);
+	const regExp = RegExp(/\$(tip|donate) ((?:\d+(?:\.\d+)?)|(?:\d+)|(?:\.\d+)) (\w+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
 	if(regExpSplit === null || regExpSplit.length !== 4) {
         const example = `Here is the format $tip/$donate {amount} {type of coin}. Example: $tip 10 RLY`;
-        const message = `Tip command ${message_item.snippet.displayMessage} is malformed. ${example}`;
+        const message = `${message_item.snippet.displayMessage} is malformed. ${example}`;
         throw new CommandError('tip/donate', message, CommandErrorCode.Malformed, true);
     }
 	const [, name, amount, coin] = regExpSplit.map(x => x.trim());
@@ -43,6 +43,8 @@ export default async function (message_item: MessageItem) {
     const result = await postRequest<any>(endpoints.api.transaction.path('tip'), issuerId, data);
     console.log(result);
     return {
-        message: `tip command executed`,
+        name: name,
+        send: true,
+        message: `tipped the broadcaster ${amount} ${coin}.`,
     };
 }

@@ -9,7 +9,7 @@ import { CommandError, CommandErrorCode } from "../Errors/command-error";
 export default async function (message_item: MessageItem) {
 
     // {airdrop} {amount} {coin} {count}
-    const regExp = RegExp(/\$(airdrop) (\d+) (\w+) (\d+)/);
+    const regExp = RegExp(/\$(airdrop) ((?:\d+(?:\.\d+)?)|(?:\d+)|(?:\.\d+)) (\w+) (\d+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
     if (regExpSplit === null || regExpSplit.length !== 5) {
@@ -21,15 +21,15 @@ export default async function (message_item: MessageItem) {
 
     const issuerId = message_item.snippet.authorChannelId;
 
-    if(+count > 10) {
+    if (+count > 10) {
         throw new CommandError(name, `Max user count is ${10} input of ${+count} is to high`, CommandErrorCode.AirdropMaxUserCount, true);
     }
     const chatters = await getAllChatterItems(issuerId, message_item.live_item.id, (+count <= 10 ? +count : 10));
     console.log({ chatters });
-    if(chatters.length === 0) {
+    if (chatters.length === 0) {
         throw new CommandError(name, `No recent chatters for ${message_item.snippet.displayMessage}.`, CommandErrorCode.NoRecentChatters, true)
     }
-    const recipientIds = chatters.map(x => `${platform}|${x.id}`);
+    const recipientIds = chatters.map(x => x.id);
 
     const coinList = (await getRequest(endpoints.api.coin_list.path())) as string[];
     const coins = coinList.map(x => x.toLowerCase());
@@ -41,13 +41,24 @@ export default async function (message_item: MessageItem) {
         token: coin,
         from: `${platform}|${issuerId}`,
         to: recipientIds.map(x => `${platform}|${x}`),
-        amount: +amount,
+        amount: +amount / +count,
         platform: platform
     } as RainRequest;
 
     const result = await postRequest<any>(endpoints.api.transaction.path('rain'), issuerId, data);
     console.log(result);
+
+    const successResults = result
+        .map(x => x.to ? x.to.useridentity.youtubeUsername : null)
+        .filter(x => x);
+    const failedResults = chatters.map(x => x.displayName).filter(x => !successResults.includes(x));
+
+    const successMessage = `airdropped ${+amount / +count} ${coin} on ${successResults.map(x => `@${x}`).join(' ')}.`;
+    const failedMessage = `Head here https://rallydataservice.azurewebsites.net/ to register and sync with YouTube to join the fun ${failedResults.map(x => `@${x}`).join(' ')}.`;
+    const message = (successResults.length > 0 ? successMessage : '') + (failedResults.length > 0 ? `  ${failedMessage}` : '');
     return {
-        message: `rain command executed`,
+        name: name,
+        send: true,
+        message: message,
     };
 }

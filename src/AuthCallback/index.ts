@@ -1,7 +1,10 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
 
 import { google } from 'googleapis';
-import { secretStore } from "../Common/secret-store";
+import { postRequest } from "../APIAccess/api-request";
+import { endpoints } from "../APIAccess/endpoints";
+import { makeJwtToken, secretStore } from "../Common/secret-store";
+import { Credentials } from "../Interfaces/credentials-interface";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -33,30 +36,31 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
             });
 
             if (json.data.items.length > 0) {
-
                 const streamInfo = json.data.items[0];
                 const channelId = streamInfo.id;
 
-                /*const userItemRecord = {
-                    id: channelId,
-                    expiryDate: token.expiry_date,
-                    refreshToken: token.refresh_token,
+                const expires_in = token.expiry_date - Date.now()
+                const credentials: Credentials = {
+                    refresh_token: token.refresh_token,
+                    access_token: token.access_token,
                     scope: token.scope,
-                    tokenType: token.token_type
-                } as UserItemRecord;
+                    token_type: token.token_type,
+                    expires_in: expires_in
+                }
 
-                try {
-                    await secretStore.set(channelId, token.access_token);
+                const expiresOn = new Date();
+                expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
 
-                    const item = await getUserItem(channelId);
-                    if(item === null) {
-                        await createUserItem(userItemRecord);
-                    } else {
-                        await updateUserItem(channelId, userItemRecord);
-                    }
-                } catch (err) {
-                    console.error(err);
-                }*/
+                const payload = makeJwtToken(credentials);
+                await secretStore.setJwt(channelId, payload, { expiresOn });
+
+                const result = await postRequest(endpoints.api.user.path('updatetokens'), channelId, {
+                    tokens: [
+                        { youtubeId: channelId, youtubeRefreshToken: token.refresh_token }
+                    ]
+                });
+                console.log(result);
+
             } else {
                 console.warn(`Channel not found`);
             }

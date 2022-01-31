@@ -5,7 +5,11 @@ export interface UserIdentity {
     youtubeUsername: string;
 }
 
-export interface ApiUser {
+export interface ApiNotFound {
+    status: number;
+}
+
+export interface ApiUser extends ApiNotFound {
     userId: number;
     isBanned: boolean;
     userIdentity: UserIdentity;

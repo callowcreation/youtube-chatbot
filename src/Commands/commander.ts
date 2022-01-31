@@ -1,11 +1,12 @@
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import botCommand from "./bot-command";
+import coinCommand from "./coin-command";
 import helpCommand from "./help-command";
 import rainCommand from "./rain-command";
 import sendCommand from "./send-command";
 import tipCommand from "./tip-command";
+import withdrawCommand from "./withdraw-command";
 
-//$send d4rkcide 10 PLAY usd 
 export async function executeCommand(message_item: MessageItem) {
 
     const name = message_item.snippet.displayMessage.trim().split(' ')[0];
@@ -23,8 +24,11 @@ export async function executeCommand(message_item: MessageItem) {
         case '$airdrop': {
             return rainCommand(message_item);
         };
+        case '$withdraw': {
+            return withdrawCommand(message_item);
+        };
         case '$coin': {
-            throw new Error(`${name} is not implemented`);
+            return coinCommand(message_item);
         };
         case '$bot': {
             return botCommand(message_item);

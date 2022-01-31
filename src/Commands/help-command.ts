@@ -9,6 +9,8 @@ export default async function (message_item: MessageItem) {
     console.log(result);
     
     return {
+        name: 'commands',
+        send: false,
         message: `link to commands help web page`,
     };
 }

@@ -104,13 +104,6 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             const { userId, userIdentity: { youtubeId, youtubeRefreshToken } } = userItems[i];
             if (youtubeId === null || youtubeId === undefined) continue;
 
-            /*const result = await postRequest(endpoints.api.user.path('updatetokens'), youtubeId, {
-                tokens:[
-                    {youtubeId, youtubeRefreshToken: '1//06zpNYi3ndyOiCgYIARAAGAYSNwF-L9IrJ0p_9a8omGv3nxPdsULrSvs-1P5c0ncaYPg1MTDmLAGykMBH77K5C21lRgJjNVShBBk'}
-                ]
-            });
-            console.log(result);*/
-
             if (youtubeId && youtubeRefreshToken) {
                 try {
                     promises.push(getCredentials(youtubeId, youtubeRefreshToken));
@@ -120,6 +113,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 }
             } else {
                 console.log(`User ${userId} has no youtube id or youtube refresh token`);
+                return;
             }
 
         }

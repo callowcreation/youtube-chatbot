@@ -1,12 +1,9 @@
 
-import { RainRequest } from "../Interfaces/api-interfaces";
-import { getRequest, platform, postRequest } from "../APIAccess/api-request";
-import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
-import { getAllChatterItems } from "../DataAccess/chatter-item-repository";
 import { createOmittedItem } from "../DataAccess/omitted-item-repository";
 import { OmittedItemRecord } from "../Models/omitted-item-record";
 import { CommandError, CommandErrorCode } from "../Errors/command-error";
+import { deleteChatterItems } from "../DataAccess/chatter-item-repository";
 
 export default async function (message_item: MessageItem) {
 
@@ -16,7 +13,7 @@ export default async function (message_item: MessageItem) {
 
     if (regExpSplit === null || regExpSplit.length !== 3) {
         const example = `Here is the format $bot {username}. Example: $bot Nightbot`;
-        const message = `Bot command ${message_item.snippet.displayMessage} is malformed. ${example}`;
+        const message = `${message_item.snippet.displayMessage} is malformed. ${example}`;
         throw new CommandError('bot', message, CommandErrorCode.Malformed, true);
     }
     const [, name, username] = regExpSplit.map(x => x.trim());
@@ -32,11 +29,22 @@ export default async function (message_item: MessageItem) {
 
         const result = await createOmittedItem(omitItem);
         console.log({ result });
+
+        const delResult = await deleteChatterItems(username);
+        console.log({ delResult });
+        return {
+            name: name,
+            send: true,
+            message: `the bot ${username} is now omitted from transactions.`,
+        };
     } catch (err) {
         console.log(err);
+
+        return {
+            name: name,
+            send: false,
+            message: JSON.stringify(err),
+        };
     }
 
-    return {
-        message: `bot command executed`,
-    };
 }

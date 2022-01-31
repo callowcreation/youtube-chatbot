@@ -8,7 +8,7 @@ import { CommandError, CommandErrorCode } from "../Errors/command-error";
 export default async function (message_item: MessageItem) {
 
     // {widthdraw} {amount} {coin}
-    const regExp = RegExp(/\$(withdraw) (\d+) (\w+)/);
+    const regExp = RegExp(/\$(withdraw) ((?:\d+(?:\.\d+)?)|(?:\d+)|(?:\.\d+)) (\w+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
 	if(regExpSplit === null || regExpSplit.length !== 4) {
@@ -36,6 +36,8 @@ export default async function (message_item: MessageItem) {
     console.log(result);
     
     return {
-        message: `withdraw command executed`,
+        name: name,
+        send: true,
+        message: `${name} successful.`,
     };
 }

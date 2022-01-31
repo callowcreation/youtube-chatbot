@@ -175,6 +175,25 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 try {
                     const result = await executeCommand(chatMessageItem);
                     console.log(result);
+                    if(result.send === true) {
+                        service.liveChatMessages.insert({
+                            auth: oauth2Client,
+                            part: ['snippet'],
+                            requestBody: {
+                                snippet: {
+                                    liveChatId: chatMessageItem.live_item.liveChatId,
+                                    type: "textMessageEvent",
+                                    textMessageDetails: {
+                                        messageText: `@${chatMessageItem.authorDetails.displayName} ${result.message}`
+                                    }
+                                }
+                            }
+                        }).then(json => {
+                            console.log({ json });
+                        }).catch(e => {
+                            console.error(e);
+                        });
+                    }
                 } catch (err) {
                     if (err instanceof CommandError) {
                         console.log(err);

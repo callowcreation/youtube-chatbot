@@ -1,41 +1,14 @@
 
-import { google } from 'googleapis';
-
 import { ApiUser, TipRequest } from "../Interfaces/api-interfaces";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
-import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
-import { Credentials } from "../Interfaces/credentials-interface";
 import { CommandError, CommandErrorCode } from '../Errors/command-error';
-
-const OAuth2 = google.auth.OAuth2;
-const service = google.youtube('v3');
-const SCOPES = [
-    'https://www.googleapis.com/auth/youtube.readonly',
-    'https://www.googleapis.com/auth/youtube',
-];
-const clientSecret = process.env.client_secret;
-const clientId = process.env.client_id;
-const redirectUri = process.env.redirect_uri;
-const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
-
-async function lookupUserByName(username: string): Promise<ApiUser> {
-    try {
-        const recipientResult: ApiUser = await getRequest(endpoints.api.user_lookup.path(`youtubeusername|${username}`));
-        console.log(recipientResult);
-        return recipientResult;
-    } catch (err) {
-        console.log(err);
-        if(err.message === 'Not Found') return null;
-        throw err;
-    }
-}
 
 export default async function (message_item: MessageItem) {
 
     // {send} {username} {amount} {coin}
-    const regExp = RegExp(/\$(send) @?([\w\s]+) (\d+) (\w+)/);
+    const regExp = RegExp(/\$(send) @?([\w\s]+) ((?:\d+(?:\.\d+)?)|(?:\d+)|(?:\.\d+)) (\w+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
     if (regExpSplit === null || regExpSplit.length !== 5) {
@@ -47,12 +20,14 @@ export default async function (message_item: MessageItem) {
 
     const issuerId = message_item.snippet.authorChannelId;
 
-    const recipient = await lookupUserByName(username);
-    if (recipient === null) {
-        throw new CommandError(name, `Recipient ${username} not found. @${username} head here to register.`, CommandErrorCode.RecipientNotFount, true);
-    }    
+    const recipient: ApiUser = await getRequest(endpoints.api.user_lookup.path(`youtubeusername|${username}`));
+    console.log(recipient);
+    if(recipient.status === 404) {
+        throw new CommandError(name, `Recipient ${username} not found. @${username} head here https://rallydataservice.azurewebsites.net/ to register.`, CommandErrorCode.RecipientNotFount, true);
+    }
+
     if (recipient.userIdentity.youtubeId === null) {
-        throw new CommandError(name, `Recipient ${username} not synced. @${username} head here to register and sync with YouTube.`, CommandErrorCode.RecipientNotSynced, true);
+        throw new CommandError(name, `Recipient ${username} not synced. @${username} head here https://rallydataservice.azurewebsites.net/ to register and sync with YouTube.`, CommandErrorCode.RecipientNotSynced, true);
     }
     const recipientId = recipient.userIdentity.youtubeId;
 
@@ -77,6 +52,8 @@ export default async function (message_item: MessageItem) {
     const result = await postRequest<any>(endpoints.api.transaction.path('tip'), issuerId, data);
     console.log(result);
     return {
-        message: `send command executed`,
+        name: name,
+        send: true,
+        message: `sent ${amount} ${coin} to ${username}.`,
     };
 }
