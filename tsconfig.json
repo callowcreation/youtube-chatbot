@@ -5,7 +5,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "sourceMap": true,
-    "strict": false
+    "strict": false,
+    "resolveJsonModule": true
   },
   "exclude": ["test/**/*"]
 }
