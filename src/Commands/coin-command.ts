@@ -1,8 +1,9 @@
 
 import { CommandError, CommandErrorCode } from "../Errors/command-error";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
+import { CommandOutput } from "../Interfaces/command-output-interface";
 
-export default async function (message_item: MessageItem) {
+export default async function (message_item: MessageItem): Promise<CommandOutput> {
 
     // {coin}    
     const regExp = RegExp(/\$(coin)/);
@@ -19,5 +20,5 @@ export default async function (message_item: MessageItem) {
         name: name,
         send: true,
         message: `head here https://rallydataservice.azurewebsites.net/ to register and sync with YouTube.`,
-    };
+    } as CommandOutput;
 }

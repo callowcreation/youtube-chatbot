@@ -4,8 +4,9 @@ import { createOmittedItem } from "../DataAccess/omitted-item-repository";
 import { OmittedItemRecord } from "../Models/omitted-item-record";
 import { CommandError, CommandErrorCode } from "../Errors/command-error";
 import { deleteChatterItems } from "../DataAccess/chatter-item-repository";
+import { CommandOutput } from "../Interfaces/command-output-interface";
 
-export default async function (message_item: MessageItem) {
+export default async function (message_item: MessageItem): Promise<CommandOutput> {
 
     // {bot} {username}
     const regExp = RegExp(/\$(bot) @?([\w\s]+)/);
@@ -36,7 +37,7 @@ export default async function (message_item: MessageItem) {
             name: name,
             send: true,
             message: `the bot ${username} is now omitted from transactions.`,
-        };
+        } as CommandOutput;
     } catch (err) {
         console.log(err);
 
@@ -44,7 +45,7 @@ export default async function (message_item: MessageItem) {
             name: name,
             send: false,
             message: JSON.stringify(err),
-        };
+        } as CommandOutput;
     }
 
 }

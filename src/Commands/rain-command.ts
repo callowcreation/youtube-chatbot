@@ -5,8 +5,9 @@ import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { getAllChatterItems } from "../DataAccess/chatter-item-repository";
 import { CommandError, CommandErrorCode } from "../Errors/command-error";
+import { CommandOutput } from "../Interfaces/command-output-interface";
 
-export default async function (message_item: MessageItem) {
+export default async function (message_item: MessageItem): Promise<CommandOutput> {
 
     // {airdrop} {amount} {coin} {count}
     const regExp = RegExp(/\$(airdrop) ((?:\d+(?:\.\d+)?)|(?:\d+)|(?:\.\d+)) (\w+) (\d+)/);
@@ -60,5 +61,5 @@ export default async function (message_item: MessageItem) {
         name: name,
         send: true,
         message: message,
-    };
+    } as CommandOutput;
 }

@@ -4,8 +4,9 @@ import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { CommandError, CommandErrorCode } from '../Errors/command-error';
+import { CommandOutput } from "../Interfaces/command-output-interface";
 
-export default async function (message_item: MessageItem) {
+export default async function (message_item: MessageItem): Promise<CommandOutput> {
 
     // {send} {username} {amount} {coin}
     const regExp = RegExp(/\$(send) @?([\w\s]+) ((?:\d+(?:\.\d+)?)|(?:\d+)|(?:\.\d+)) (\w+)/);
@@ -55,5 +56,5 @@ export default async function (message_item: MessageItem) {
         name: name,
         send: true,
         message: `sent ${amount} ${coin} to ${username}.`,
-    };
+    } as CommandOutput;
 }

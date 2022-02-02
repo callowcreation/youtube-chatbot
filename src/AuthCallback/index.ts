@@ -46,7 +46,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                     scope: token.scope,
                     token_type: token.token_type,
                     expires_in: expires_in
-                }
+                };
 
                 const expiresOn = new Date();
                 expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
