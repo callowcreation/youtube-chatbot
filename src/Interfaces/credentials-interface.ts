@@ -7,3 +7,9 @@ export interface Credentials {
 	token_type: string;
 	expires_in: number;
 }
+
+export interface APICredentials {
+	access_token: string;
+	expires_in: number;
+	expires_time: number;
+}

@@ -2,7 +2,8 @@ import fetch from 'node-fetch';
 import { secretStore } from '../Common/secret-store';
 import { ApiRequestError } from '../Errors/api-request-error';
 import { RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
-
+import * as jsonwebtoken from 'jsonwebtoken';
+import { APICredentials } from '../Interfaces/credentials-interface';
 export const platform: string = 'youtube';
 
 function Cached() {
@@ -22,13 +23,11 @@ const cached = new Cached();
 
 // Verify the header and the enclosed JWT.
 function verifyAndDecode(jwt_token) {
-    const jsonwebtoken = require('jsonwebtoken');
     const extension_secret = Buffer.from(process.env.client_secret, 'base64');
     return jsonwebtoken.verify(jwt_token, extension_secret, { algorithms: ['HS256'] });
 }
 
 function makeJwtToken(payload) {
-    const jsonwebtoken = require('jsonwebtoken');
     const extension_secret = Buffer.from(process.env.client_secret, 'base64');
     return jsonwebtoken.sign(payload, extension_secret, { algorithm: 'HS256' });
 }
@@ -41,7 +40,7 @@ async function getCachedToken(client_credentials) {
     try {
         const keyVaultSecret = await secretStore.getJwt('api-token');
 
-        const payload = verifyAndDecode(keyVaultSecret.value);
+        const payload = verifyAndDecode(keyVaultSecret.value) as APICredentials;
         cached.access_token = payload.access_token;
         cached.expires_in = payload.expires_in;
         cached.expires_time = payload.expires_time;
