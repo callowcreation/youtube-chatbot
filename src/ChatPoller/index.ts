@@ -8,14 +8,11 @@ import { LiveItemRecord } from "../Models/live-item-record";
 import { LiveChatError } from '../Errors/live-chat-error';
 import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
 import { executeCommand } from "../Commands/commander";
-import { getRequest } from "../APIAccess/api-request";
-import { endpoints } from "../APIAccess/endpoints";
 import { Credentials } from "../Interfaces/credentials-interface";
 import { createManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
-import { getAllOmittedItems, getOmittedItem, getOmittedItems } from "../DataAccess/omitted-item-repository";
-import { OmittedItemRecord } from "../Models/omitted-item-record";
-import { CommandError, CommandErrorCode } from "../Errors/command-error";
+import { getOmittedItem } from "../DataAccess/omitted-item-repository";
+import { CommandError } from "../Errors/command-error";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');

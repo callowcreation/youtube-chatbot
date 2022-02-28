@@ -1,4 +1,4 @@
-import { CosmosClient, OperationInput } from "@azure/cosmos";
+import { CosmosClient } from "@azure/cosmos";
 import { OmittedItemRecord } from "../Models/omitted-item-record";
 
 function getCosmosDbContainer() {

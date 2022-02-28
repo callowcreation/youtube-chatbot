@@ -1,6 +1,3 @@
-
-
-
 class Endpoint {
               
     readonly apiUrl: string = 'https://rallydataservice.azurewebsites.net';

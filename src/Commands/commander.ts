@@ -11,6 +11,9 @@ export async function executeCommand(message_item: MessageItem) {
 
     const name = message_item.snippet.displayMessage.trim().split(' ')[0];
 
+    const { id: channelId } = message_item.live_item;
+    const { authorChannelId, displayMessage } = message_item.snippet;
+    
     switch (name) {
         case '$send': {
             return sendCommand(message_item);
@@ -22,7 +25,7 @@ export async function executeCommand(message_item: MessageItem) {
             return tipCommand(message_item);
         };
         case '$airdrop': {
-            return rainCommand(message_item);
+            return rainCommand(channelId, displayMessage, authorChannelId);
         };
         case '$withdraw': {
             return withdrawCommand(message_item);

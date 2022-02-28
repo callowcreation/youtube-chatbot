@@ -1,7 +1,6 @@
 import { LiveItemRecord } from "../Models/live-item-record";
 import { Credentials } from "./credentials-interface";
 
-
 export interface ChatPoller {
 	credentials: Credentials;
 	live_item: LiveItemRecord;

@@ -1,38 +1,37 @@
 import fetch from 'node-fetch';
+import * as jsonwebtoken from 'jsonwebtoken';
 import { secretStore } from '../Common/secret-store';
 import { ApiRequestError } from '../Errors/api-request-error';
-import { RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
-import * as jsonwebtoken from 'jsonwebtoken';
-import { APICredentials } from '../Interfaces/credentials-interface';
+import { Cached, ClientCredentials, RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
+import { APICredentials, Credentials } from '../Interfaces/credentials-interface';
+
 export const platform: string = 'youtube';
 
-function Cached() {
-    this.access_token = null;
-    this.expires_in = 0;
-    this.expires_time = 0;
-};
-
-const client_credentials = {
+const client_credentials: ClientCredentials = {
     url: process.env.api_url,
     client_id: process.env.api_client_id,
     client_secret: process.env.api_client_secret,
     audience: process.env.api_audience,
-}
+};
 
-const cached = new Cached();
+const cached: Cached = {
+    access_token: null,
+    expires_in: 0,
+    expires_time: 0
+};
 
 // Verify the header and the enclosed JWT.
-function verifyAndDecode(jwt_token) {
+function verifyAndDecode(jwt_token: string) {
     const extension_secret = Buffer.from(process.env.client_secret, 'base64');
     return jsonwebtoken.verify(jwt_token, extension_secret, { algorithms: ['HS256'] });
 }
 
-function makeJwtToken(payload) {
+function makeJwtToken(payload: Credentials | Cached) {
     const extension_secret = Buffer.from(process.env.client_secret, 'base64');
     return jsonwebtoken.sign(payload, extension_secret, { algorithm: 'HS256' });
 }
 
-async function getCachedToken(client_credentials) {
+async function getCachedToken(client_credentials: ClientCredentials) {
     const d = new Date();
     const seconds = Math.round(d.getTime() / 1000);
     const secondsOff = 60;
@@ -55,7 +54,7 @@ async function getCachedToken(client_credentials) {
         cached.expires_in = result.expires_in;
         cached.expires_time = (seconds + cached.expires_in) - secondsOff;
 
-        const payload = {
+        const payload: Cached = {
             expires_in: cached.expires_in,
             access_token: cached.access_token,
             expires_time: cached.expires_time,
@@ -70,7 +69,7 @@ async function getCachedToken(client_credentials) {
     return { access_token: cached.access_token };
 }
 
-async function fetchToken(client_credentials) {
+async function fetchToken(client_credentials: ClientCredentials) {
 
     const options = {
         method: 'POST',
@@ -90,8 +89,7 @@ async function fetchToken(client_credentials) {
         .catch(e => e);
 }
 
-
-function getHeaders(access_token, youtubeId) {
+function getHeaders(access_token: string, youtubeId: string) {
 
     const headers = {
         'Content-Type': 'application/json',
@@ -128,21 +126,22 @@ async function _request<T>(method: string, url: string, youtubeId: string, data?
             if (!res.ok) {
 
                 const contentType = res.headers.get('content-type');
-                if(contentType && contentType.includes('json')) {
+                if (contentType && contentType.includes('json')) {
                     return res.json() as Promise<T>;
                 }
-                
-                throw new ApiRequestError(await res.text(), res.status, res.statusText);
+
+                const text = (await res.text()) || 'api request failed';
+                throw new ApiRequestError(text, res.status, res.statusText);
             }
             return res.json() as Promise<T>;
         });
 }
 
-export async function getRequest<T>(url): Promise<T> {
+export async function getRequest<T>(url: string): Promise<T> {
     return _request<T>('GET', url, null);
 }
 
-export async function postRequest<T>(url, youtubeId, data: WithdrawRequest | RainRequest | TipRequest | UpdateTokenRequest): Promise<T> {
+export async function postRequest<T>(url: string, youtubeId: string, data: WithdrawRequest | RainRequest | TipRequest | UpdateTokenRequest): Promise<T> {
     return _request<T>('POST', url, youtubeId, data);
 }
 

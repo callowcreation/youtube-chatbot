@@ -36,7 +36,7 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
         return {
             name: name,
             send: true,
-            message: `the bot ${username} is now omitted from transactions.`,
+            message: `the ${username} is now omitted from transactions.`,
         } as CommandOutput;
     } catch (err) {
         console.log(err);
@@ -44,7 +44,8 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
         return {
             name: name,
             send: false,
-            message: JSON.stringify(err),
+            message: err.code && err.code === 409 ? `the ${username} is already omitted from transactions.` : `an error occurred.`,
+            error: err,
         } as CommandOutput;
     }
 
