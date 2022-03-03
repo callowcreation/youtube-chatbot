@@ -1,0 +1,11 @@
+{
+  "bindings": [
+    {
+      "name": "livePoller",
+      "type": "timerTrigger",
+      "direction": "in",
+      "schedule": "0 */1 * * * *"
+    }
+  ],
+  "scriptFile": "../dist/LivePoller/index.js"
+}
