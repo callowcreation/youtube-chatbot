@@ -7,5 +7,5 @@
       "schedule": "0 */1 * * * *"
     }
   ],
-  "scriptFile": "../../dist/LivePoller/index.js"
+  "scriptFile": "../dist/LivePoller/index.js"
 }

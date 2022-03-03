@@ -9,7 +9,7 @@
         "get",
         "post"
       ],
-      "route": "authorize/"
+      "route": "auth-callback/"
     },
     {
       "type": "http",
@@ -17,5 +17,5 @@
       "name": "res"
     }
   ],
-  "scriptFile": "../../dist/AuthorizeUser/index.js"
+  "scriptFile": "../dist/AuthCallback/index.js"
 }

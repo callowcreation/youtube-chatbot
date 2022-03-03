@@ -6,7 +6,7 @@
 			"type": "node",
 			"request": "attach",
 			"port": 9229,
-			"preLaunchTask": "func: host start --script-root src"
+			"preLaunchTask": "func: host start"
 		},
 		{
 			"type": "node",

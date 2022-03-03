@@ -19,7 +19,7 @@ const SCOPES = [
 ];
 const clientSecret = process.env.client_secret;
 const clientId = process.env.client_id;
-const redirectUri = process.env.redirect_uri;
+const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
 

@@ -1,7 +1,6 @@
 {
   "bindings": [
     {
-      "authLevel": "anonymous",
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
@@ -9,7 +8,7 @@
         "get",
         "post"
       ],
-      "route": "auth-callback/"
+      "route": "authorize/"
     },
     {
       "type": "http",
@@ -17,5 +16,5 @@
       "name": "res"
     }
   ],
-  "scriptFile": "../../dist/AuthCallback/index.js"
+  "scriptFile": "../dist/AuthorizeUser/index.js"
 }

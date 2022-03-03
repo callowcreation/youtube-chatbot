@@ -1,4 +1,4 @@
-import * as localSettings from '../src/local.settings.json';
+import * as localSettings from '../local.settings.json';
 
 export default function () {
     process.env.AzureWebJobsStorage = localSettings.Values.AzureWebJobsStorage;
@@ -11,7 +11,7 @@ export default function () {
     process.env.token_uri = localSettings.Values.token_uri;
     process.env.auth_provider_x509_cert_url = localSettings.Values.auth_provider_x509_cert_url;
     process.env.client_secret = localSettings.Values.client_secret;
-    process.env.redirect_uri = localSettings.Values.redirect_uri;
+    process.env.redirect_uri = localSettings.Values.IS_DEV === '1' ? localSettings.Values.redirect_uri_dev : localSettings.Values.redirect_uri_prod;
     process.env.FUNCTIONS_EXTENSION_VERSION = localSettings.Values.FUNCTIONS_EXTENSION_VERSION;
     process.env.APPINSIGHTS_INSTRUMENTATIONKEY = localSettings.Values.APPINSIGHTS_INSTRUMENTATIONKEY;
     process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = localSettings.Values.APPLICATIONINSIGHTS_CONNECTION_STRING;

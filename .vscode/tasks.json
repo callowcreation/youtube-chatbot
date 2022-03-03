@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "func",
-			"command": "host start --script-root src",
+			"command": "host start",
 			"problemMatcher": "$func-watch",
 			"isBackground": true,
 			"dependsOn": "npm build"

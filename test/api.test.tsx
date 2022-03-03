@@ -1,15 +1,11 @@
 import setProcessVars from "./setProcessVars";
 setProcessVars();
-import { getRequest, platform, postRequest } from "../src/APIAccess/api-request";
-import botCommand from "../src/Commands/bot-command";
-import helpCommand from "../src/Commands/help-command";
-import tipCommand from "../src/Commands/tip-command";
-import { MessageItem } from "../src/Interfaces/chat-poller-interfaces";
+import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 
 import { AUTHOR_ID, AUTHOR_NAME, CHANNEL_ID, BasicMessageArgs, getBasicMessageItem } from './getBasicMessageItem';
-import { ApiUser, RainRequest, RainResponse } from "../src/Interfaces/api-interfaces";
-import { endpoints } from "../src/APIAccess/endpoints";
-import { ApiRequestError } from "../src/Errors/api-request-error";
+import { ApiUser, RainRequest, RainResponse } from "../Interfaces/api-interfaces";
+import { endpoints } from "../APIAccess/endpoints";
+import { ApiRequestError } from "../Errors/api-request-error";
 
 test('api 500 from bad user get request', async () => {
 

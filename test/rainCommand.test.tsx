@@ -1,11 +1,11 @@
 import setProcessVars from "./setProcessVars";
 setProcessVars();
-import rainCommand from "../src/Commands/rain-command";
-import { MessageItem } from "../src/Interfaces/chat-poller-interfaces";
+import rainCommand from "../Commands/rain-command";
+import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 
-import { CommandError, CommandErrorCode } from '../src/Errors/command-error';
+import { CommandError, CommandErrorCode } from '../Errors/command-error';
 import { AUTHOR_ID, AUTHOR_NAME, CHANNEL_ID, BasicMessageArgs, getBasicMessageItem } from './getBasicMessageItem';
-import { ApiRequestError } from "../src/Errors/api-request-error";
+import { ApiRequestError } from "../Errors/api-request-error";
 
 test('rain message should indicate success', async () => {
 

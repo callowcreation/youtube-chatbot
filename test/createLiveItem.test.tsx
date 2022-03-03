@@ -1,10 +1,10 @@
 import setProcessVars from "./setProcessVars";
 setProcessVars();
-import botCommand from "../src/Commands/bot-command";
-import coinCommand from "../src/Commands/coin-command";
-import helpCommand from "../src/Commands/help-command";
-import tipCommand from "../src/Commands/tip-command";
-import { MessageItem } from "../src/Interfaces/chat-poller-interfaces";
+import botCommand from "../Commands/bot-command";
+import coinCommand from "../Commands/coin-command";
+import helpCommand from "../Commands/help-command";
+import tipCommand from "../Commands/tip-command";
+import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 
 import { AUTHOR_ID, AUTHOR_NAME, CHANNEL_ID, BasicMessageArgs, getBasicMessageItem } from './getBasicMessageItem';
 
