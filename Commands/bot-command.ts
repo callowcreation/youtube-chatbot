@@ -23,15 +23,15 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
 
     try {
         const omitItem: OmittedItemRecord = {
-            id: username,
-            channelId: message_item.live_item.rowKey,
+            partitionKey: message_item.live_item.rowKey,
+            rowKey: username,
             issuerId: issuerId
         } as OmittedItemRecord;
 
         const result = await createOmittedItem(omitItem);
         console.log({ result });
 
-        const delResult = await deleteChatterItems(username);
+        const delResult = await deleteChatterItems(omitItem.partitionKey, omitItem.rowKey);
         console.log({ delResult });
         return {
             name: name,

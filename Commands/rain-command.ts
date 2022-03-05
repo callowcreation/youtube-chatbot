@@ -43,12 +43,12 @@ export default async function (channelId: string, displayMessage: string, author
         if (+count > 10) {
             throw new CommandError(output.name, `Max user count is ${10} input of ${+count} is to high`, CommandErrorCode.AirdropMaxUserCount, true);
         }
-        const chatters = await getAllChatterItems(issuerId, channelId, (+count <= 10 ? +count : 10));
+        const chatters = await getAllChatterItems(channelId, issuerId, (+count <= 10 ? +count : 10));
         //console.log({ chatters });
         if (chatters.length === 0) {
             throw new CommandError(output.name, `No recent chatters for ${displayMessage}.`, CommandErrorCode.NoRecentChatters, true)
         }
-        const recipientIds = chatters.map(x => x.id);
+        const recipientIds = chatters.map(x => x.rowKey);
 
         const coinList = (await getRequest(endpoints.api.coin_list.path())) as string[];
         const coins = coinList.map(x => x.toLowerCase());

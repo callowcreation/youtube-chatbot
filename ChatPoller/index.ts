@@ -9,10 +9,11 @@ import { LiveChatError } from '../Errors/live-chat-error';
 import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
 import { executeCommand } from "../Commands/commander";
 import { Credentials } from "../Interfaces/credentials-interface";
-import { createManyChatterItems } from "../DataAccess/chatter-item-repository";
+import { getAllChatterItems, replaceManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
-import { getOmittedItem } from "../DataAccess/omitted-item-repository";
+import { createOmittedItem, deleteOmittedItem, getOmittedItem } from "../DataAccess/omitted-item-repository";
 import { CommandError } from "../Errors/command-error";
+import { OmittedItemRecord } from "../Models/omitted-item-record";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -141,8 +142,8 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 
         const chatterItemRecords = chatMessageItems.map(x => {
             return {
-                id: x.snippet.authorChannelId,
-                channelId: x.live_item.rowKey,
+                rowKey: x.snippet.authorChannelId,
+                partitionKey: x.live_item.rowKey,
                 liveChatId: x.live_item.liveChatId,
                 displayName: x.authorDetails.displayName,
                 displayMessage: x.snippet.displayMessage
@@ -153,14 +154,14 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 
             const promises: Promise<string>[] = [];
             for (let i = 0; i < chatterItemRecords.length; i++) {
-                const { displayName, channelId } = chatterItemRecords[i];
-                promises.push(getOmittedItem(displayName, channelId).then(x => x ? x.id : ''));
+                const { displayName, partitionKey: channelId } = chatterItemRecords[i];
+                promises.push(getOmittedItem(channelId, displayName).then(x => x ? x.rowKey : ''));
             }
             const omittedResults = await Promise.all(promises);
 
-            const withOmittedItems: ChatterItemRecord[] = chatterItemRecords.filter(x => !omittedResults.includes(x.displayName));
-            if (withOmittedItems.length > 0) {
-                const result = await createManyChatterItems(withOmittedItems);
+            const withoutOmittedItems: ChatterItemRecord[] = chatterItemRecords.filter(x => !omittedResults.includes(x.displayName));
+            if (withoutOmittedItems.length > 0) {
+                const result = await replaceManyChatterItems(withoutOmittedItems);
                 console.log({ result });
             }
         }
@@ -172,7 +173,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 try {
                     const result = await executeCommand(chatMessageItem);
                     console.log(result);
-                    if(result.send === true) {
+                    if (result.send === true) {
                         service.liveChatMessages.insert({
                             auth: oauth2Client,
                             part: ['snippet'],

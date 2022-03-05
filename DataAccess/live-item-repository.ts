@@ -3,12 +3,12 @@ import { getStorageTableClient } from "./storage-helper";
 
 const partitionKey = 'liveItems';
 const tableName = 'livecontainer';
+
 const client = getStorageTableClient(tableName);
 
 function makeLiveItemEntity(liveItem: LiveItemRecord) {
     return {
-        partitionKey: "liveItems",
-        timestamp: Date.now(),
+        partitionKey: partitionKey,
         ...liveItem
     };
 }
@@ -21,10 +21,6 @@ export async function getLiveItem(rowKey: string): Promise<LiveItemRecord> {
     return client.getEntity(partitionKey, rowKey);
 }
 
-export async function deleteLiveItem(rowKey: string) {
-    await client.deleteEntity(partitionKey, rowKey);
-}
-
 export async function updateLiveItem(liveItem: LiveItemRecord) { 
     const entity = makeLiveItemEntity(liveItem);
     await client.updateEntity(entity, 'Merge');
@@ -33,4 +29,8 @@ export async function updateLiveItem(liveItem: LiveItemRecord) {
 export async function createLiveItem(liveItem: LiveItemRecord) {
     const entity = makeLiveItemEntity(liveItem);
     await client.createEntity(entity);
+}
+
+export async function deleteLiveItem(rowKey: string) {
+    await client.deleteEntity(partitionKey, rowKey);
 }
