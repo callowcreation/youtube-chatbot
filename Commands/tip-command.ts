@@ -21,7 +21,7 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
     
     const issuerId = message_item.snippet.authorChannelId;
 
-    const recipientId = message_item.live_item.id;
+    const recipientId = message_item.live_item.rowKey;
 
     if (issuerId === recipientId) {
         throw new CommandError(name, `Issuer ${message_item.authorDetails.displayName} and recipient ${message_item.authorDetails.displayName} can not be the same.`, CommandErrorCode.IssuerIsRecipient, true);

@@ -1,5 +1,8 @@
+/**
+ * rowKey is a unique identifier in this case the channelId/userId is used
+ */
 export interface LiveItemRecord {
-	id: string;
+	rowKey: string;
 	liveChatId: string;
-	pageToken: null;
+	pageToken: string;
 }

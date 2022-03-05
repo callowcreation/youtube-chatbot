@@ -24,7 +24,7 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
     try {
         const omitItem: OmittedItemRecord = {
             id: username,
-            channelId: message_item.live_item.id,
+            channelId: message_item.live_item.rowKey,
             issuerId: issuerId
         } as OmittedItemRecord;
 

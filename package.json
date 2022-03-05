@@ -8,13 +8,23 @@
     "start": "func start",
     "test": "jest"
   },
-  "dependencies": {
-  },
   "devDependencies": {
+    "@azure/functions": "^3.0.0",
+    "@types/node": "^17.0.21",
+    "typescript": "^4.6.2"
   },
   "main": "index.js",
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "@azure/cosmos": "^3.15.1",
+    "@azure/data-tables": "^13.0.1",
+    "@azure/identity": "^2.0.4",
+    "@azure/keyvault-secrets": "^4.3.0",
+    "crypto": "^1.0.1",
+    "googleapis": "^95.0.0",
+    "node-fetch": "^2.6.7"
+  }
 }

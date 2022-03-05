@@ -49,7 +49,7 @@ async function getCachedToken(client_credentials: ClientCredentials) {
     }
 
     if (seconds > cached.expires_time) {
-        const result = await fetchToken(client_credentials);
+        const result = await fetchToken(client_credentials) as APICredentials;
         cached.access_token = result.access_token;
         cached.expires_in = result.expires_in;
         cached.expires_time = (seconds + cached.expires_in) - secondsOff;

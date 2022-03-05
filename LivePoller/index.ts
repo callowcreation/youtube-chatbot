@@ -138,7 +138,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     const { channelId, liveChatId } = streamInfo.snippet;
 
                     const liveItem = {
-                        id: channelId,
+                        rowKey: channelId,
                         liveChatId: liveChatId
                     } as LiveItemRecord;
                     
@@ -147,13 +147,13 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                         console.log(`Created new ${credentials.id} is live`);
                     } else {
                         liveItem.pageToken = item.pageToken;
-                        await updateLiveItem(liveItem.id, liveItem);
+                        await updateLiveItem(liveItem);
                         console.log(`Update live item for ${credentials.id}`);
                     }
                 } else { // stream may be offline
                     if (item !== null) {
-                        await deleteLiveItem(item.id);
-                        console.log(`Removed ${item.id} not live`);
+                        await deleteLiveItem(item.rowKey);
+                        console.log(`Removed ${item.rowKey} not live`);
                     }
                 }
             } catch (err) {

@@ -26,7 +26,7 @@ const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : 
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
 async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller> {
-    const keyVaultSecret = await secretStore.getJwt(liveItem.id)
+    const keyVaultSecret = await secretStore.getJwt(liveItem.rowKey)
         .catch(err => {
             if (err.statusCode !== 404)
                 throw err;
@@ -65,8 +65,8 @@ async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
             switch (reason) {
                 case 'liveChatEnded': {
                     // remove item from db
-                    console.log(`Live chat ended removing ${result.live_item.id} item from database.`);
-                    await deleteLiveItem(result.live_item.id);
+                    console.log(`Live chat ended removing ${result.live_item.rowKey} item from database.`);
+                    await deleteLiveItem(result.live_item.rowKey);
                 } break;
                 default: {
                     // log error to db
@@ -123,16 +123,16 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 }
                 if (data.nextPageToken) {
                     const liveItem = {
-                        id: live_item.id,
+                        rowKey: live_item.rowKey,
                         liveChatId: live_item.liveChatId,
                         pageToken: data.nextPageToken
                     } as LiveItemRecord;
-                    await updateLiveItem(live_item.id, liveItem);
+                    await updateLiveItem(liveItem);
                 }
             } catch (err) {
                 if (err instanceof LiveChatError) {
                     console.log(err.message);
-                    await deleteLiveItem(live_item.id);
+                    await deleteLiveItem(live_item.rowKey);
                 } else {
                     // log error
                 }
@@ -142,7 +142,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         const chatterItemRecords = chatMessageItems.map(x => {
             return {
                 id: x.snippet.authorChannelId,
-                channelId: x.live_item.id,
+                channelId: x.live_item.rowKey,
                 liveChatId: x.live_item.liveChatId,
                 displayName: x.authorDetails.displayName,
                 displayMessage: x.snippet.displayMessage
