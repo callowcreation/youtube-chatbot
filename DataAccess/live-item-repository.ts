@@ -1,3 +1,4 @@
+import { odata } from "@azure/data-tables";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { getStorageTableClient } from "./storage-helper";
 
@@ -14,7 +15,33 @@ function makeLiveItemEntity(liveItem: LiveItemRecord) {
 }
 
 export async function getAllLiveItems(): Promise<LiveItemRecord[]> {
-    return [];
+    const listResults = client.listEntities({
+        queryOptions: {
+            filter: odata`PartitionKey eq ${partitionKey}`,
+            select: ['rowKey', 'liveChatId', 'pageToken']
+        }
+    });
+    
+    const liveEntities: LiveItemRecord[] = [];
+    try {
+        const iterator = listResults.byPage({ maxPageSize: 10 });
+
+        for await (const page of iterator) {
+            const liveItemRecord = page.map(x => {
+                return {
+                    rowKey: x.rowKey,
+                    liveChatId: x.liveChatId,
+                    pageToken: x.pageToken
+                } as LiveItemRecord;
+            });
+            liveEntities.push(...liveItemRecord);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+
+
+    return liveEntities;
 }
 
 export async function getLiveItem(rowKey: string): Promise<LiveItemRecord> {

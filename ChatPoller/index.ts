@@ -9,9 +9,9 @@ import { LiveChatError } from '../Errors/live-chat-error';
 import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
 import { executeCommand } from "../Commands/commander";
 import { Credentials } from "../Interfaces/credentials-interface";
-import { getAllChatterItems, replaceManyChatterItems } from "../DataAccess/chatter-item-repository";
+import { replaceManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
-import { createOmittedItem, deleteOmittedItem, getOmittedItem } from "../DataAccess/omitted-item-repository";
+import { getOmittedItem } from "../DataAccess/omitted-item-repository";
 import { CommandError } from "../Errors/command-error";
 import { OmittedItemRecord } from "../Models/omitted-item-record";
 
@@ -84,7 +84,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     if (myTimer.isPastDue) {
         console.log('Chat Poller is running late!');
     }
-    console.log('Chat Poller function ran!', timeStamp);
+    //console.log('Chat Poller function ran!', timeStamp);
 
     const liveItems = await getAllLiveItems();
 
@@ -114,7 +114,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     throw new LiveChatError(`Stream went offline: ${data.offlineAt}`);
                 }
                 if (data.items.length > 0) {
-                    console.log(data.items);
+                    //console.log(data.items);
                     const messageItems = data.items.map(x => ({
                         authorDetails: x.authorDetails,
                         snippet: x.snippet,
@@ -132,10 +132,11 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 }
             } catch (err) {
                 if (err instanceof LiveChatError) {
-                    console.log(err.message);
+                    console.error(err);
                     await deleteLiveItem(live_item.rowKey);
                 } else {
                     // log error
+                    console.error(err);
                 }
             }
         }
@@ -155,14 +156,20 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             const promises: Promise<string>[] = [];
             for (let i = 0; i < chatterItemRecords.length; i++) {
                 const { displayName, partitionKey: channelId } = chatterItemRecords[i];
-                promises.push(getOmittedItem(channelId, displayName).then(x => x ? x.rowKey : ''));
+                const promise = getOmittedItem(channelId, displayName)
+                    .then(x => x ? x.rowKey : '')
+                    .catch(e => {
+                        if (e.statusCode !== 404) throw e;
+                        return null;
+                    });
+                promises.push(promise);
             }
             const omittedResults = await Promise.all(promises);
 
-            const withoutOmittedItems: ChatterItemRecord[] = chatterItemRecords.filter(x => !omittedResults.includes(x.displayName));
+            const withoutOmittedItems: ChatterItemRecord[] = chatterItemRecords.filter(x => x && !omittedResults.includes(x.displayName));
             if (withoutOmittedItems.length > 0) {
-                const result = await replaceManyChatterItems(withoutOmittedItems);
-                console.log({ result });
+                /*const result =*/ await replaceManyChatterItems(withoutOmittedItems);
+                //console.log({ result });
             }
         }
 
@@ -172,7 +179,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             if (message.startsWith('$')) {
                 try {
                     const result = await executeCommand(chatMessageItem);
-                    console.log(result);
+                    //console.log(result);
                     if (result.send === true) {
                         service.liveChatMessages.insert({
                             auth: oauth2Client,
@@ -187,14 +194,14 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                                 }
                             }
                         }).then(json => {
-                            console.log({ json });
+                            //console.log({ json });
                         }).catch(e => {
                             console.error(e);
                         });
                     }
                 } catch (err) {
                     if (err instanceof CommandError) {
-                        console.log(err);
+                        console.error(err);
                         if (err.send === true) {
                             service.liveChatMessages.insert({
                                 auth: oauth2Client,
@@ -209,7 +216,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                                     }
                                 }
                             }).then(json => {
-                                console.log({ json });
+                                //console.log({ json });
                             }).catch(e => {
                                 console.error(e);
                             });

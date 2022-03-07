@@ -4,7 +4,6 @@ import { getStorageTableClient } from "./storage-helper";
 const tableName = 'omittedcontainer';
 const client = getStorageTableClient(tableName);
 
-
 function makeOmittedItemEntity(omittedItem: OmittedItemRecord) {
     return {
         ...omittedItem

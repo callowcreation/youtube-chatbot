@@ -45,7 +45,13 @@ export async function getAllChatterItems(partitionKey: string, issuerId: string,
         const entities = topEntities.splice(10) as ChatterItemRecord[];
         for (let i = 0; i < entities.length; i++) {
             const entity = entities[i] as ChatterItemRecord;
-            await deleteChatterItems(entity.partitionKey, entity.rowKey);
+            await deleteChatterItems(entity.partitionKey, entity.rowKey)
+                .catch(e => {
+                    if (e.statusCode !== 404) {
+                        console.error(e);
+                        throw e;
+                    }
+                });;
         }
     }
 

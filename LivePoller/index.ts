@@ -27,9 +27,10 @@ async function getCredentials(youtubeId: string, youtubeRefreshToken: string): P
 
     const keyVaultSecret = await secretStore.getJwt(youtubeId)
         .catch(err => {
-            if (err.statusCode !== 404)
+            if (err.statusCode !== 404) {
+                console.log(err);
                 throw err;
-            console.log(err);
+            }
             return { value: null };
         });
 
@@ -90,7 +91,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     if (myTimer.isPastDue) {
         console.log('Live Poller is running late!');
     }
-    console.log('Live Poller function ran!', timeStamp);
+    //console.log('Live Poller function ran!', timeStamp);
 
     const userItems: ApiUser[] = await getRequest<ApiUser[]>(endpoints.api.user.path('all'));
 
@@ -101,19 +102,20 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         const promises = [];
         for (let i = 0; i < userItems.length; i++) {
 
-            const { userId, userIdentity: { youtubeId, youtubeRefreshToken } } = userItems[i];
+            const { userId, userIdentity: { youtubeId, youtubeUsername, youtubeRefreshToken } } = userItems[i];
             if (youtubeId === null || youtubeId === undefined) continue;
 
             if (youtubeId && youtubeRefreshToken) {
                 try {
                     promises.push(getCredentials(youtubeId, youtubeRefreshToken));
                 } catch (err) {
-                    if (err.statusCode !== 404) throw err;
-                    console.log(err);
+                    if (err.statusCode !== 404) {
+                        console.error(err);
+                        throw err;
+                    }
                 }
             } else {
-                console.log(`User ${userId} has no youtube id or youtube refresh token`);
-                return;
+                console.warn(`User ${youtubeUsername} id ${userId} has no youtube id or youtube refresh token`);
             }
 
         }
@@ -125,7 +127,13 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             oauth2Client.setCredentials(credentials);
 
             try {
-                const item = await getLiveItem(credentials.id);
+                const item = await getLiveItem(credentials.id).catch(e => {
+                    if (e.statusCode !== 404) {
+                        console.error(e);
+                        throw e;
+                    }
+                    return null;
+                });
 
                 const json = await service.liveBroadcasts.list({
                     auth: oauth2Client,
@@ -157,7 +165,9 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     }
                 }
             } catch (err) {
-                console.error(err);
+                if(err.message !== 'invalid_grant') {
+                    console.error(err);
+                }
             }
         }
     } else {

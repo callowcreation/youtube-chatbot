@@ -31,7 +31,13 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
         const result = await createOmittedItem(omitItem);
         console.log({ result });
 
-        const delResult = await deleteChatterItems(omitItem.partitionKey, omitItem.rowKey);
+        const delResult = await deleteChatterItems(omitItem.partitionKey, omitItem.rowKey)
+            .catch(e => {
+                if (e.statusCode !== 404) {
+                    console.error(e);
+                    throw e;
+                }
+            });
         console.log({ delResult });
         return {
             name: name,
@@ -39,7 +45,7 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
             message: `the ${username} is now omitted from transactions.`,
         } as CommandOutput;
     } catch (err) {
-        console.log(err);
+        console.error(err);
 
         return {
             name: name,
