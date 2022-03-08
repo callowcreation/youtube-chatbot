@@ -1,5 +1,4 @@
-import { CosmosClient, OperationInput } from "@azure/cosmos";
-import { odata, TableTransaction, TransactionAction } from "@azure/data-tables";
+import { odata } from "@azure/data-tables";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
 import { getStorageTableClient } from "./storage-helper";
 

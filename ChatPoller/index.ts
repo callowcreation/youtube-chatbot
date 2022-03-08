@@ -13,7 +13,6 @@ import { replaceManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
 import { getOmittedItem } from "../DataAccess/omitted-item-repository";
 import { CommandError } from "../Errors/command-error";
-import { OmittedItemRecord } from "../Models/omitted-item-record";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');

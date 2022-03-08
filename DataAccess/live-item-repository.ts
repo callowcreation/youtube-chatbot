@@ -40,7 +40,6 @@ export async function getAllLiveItems(): Promise<LiveItemRecord[]> {
         console.error(err);
     }
 
-
     return liveEntities;
 }
 
