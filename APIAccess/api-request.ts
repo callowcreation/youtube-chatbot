@@ -7,6 +7,7 @@ import { APICredentials, Credentials } from '../Interfaces/credentials-interface
 
 export const platform: string = 'youtube';
 
+const key = 'api-token-key';
 const client_credentials: ClientCredentials = {
     url: process.env.api_url,
     client_id: process.env.api_client_id,
@@ -37,7 +38,7 @@ async function getCachedToken(client_credentials: ClientCredentials) {
     const secondsOff = 60;
 
     try {
-        const keyVaultSecret = await secretStore.getJwt('api-token');
+        const keyVaultSecret = await secretStore.getJwt(key);
 
         const payload = verifyAndDecode(keyVaultSecret.value) as APICredentials;
         cached.access_token = payload.access_token;
@@ -63,7 +64,7 @@ async function getCachedToken(client_credentials: ClientCredentials) {
         expiresOn.setSeconds(expiresOn.getSeconds() + cached.expires_in);
 
         const jwt = makeJwtToken(payload);
-        await secretStore.setJwt('api-token', jwt, { expiresOn });
+        await secretStore.setJwt(key, jwt, { expiresOn });
     }
 
     return { access_token: cached.access_token };
@@ -155,7 +156,7 @@ export async function postRequest<T>(url: string, youtubeId: string, data: Withd
             .then(res => res.json());
         return result;
     } catch (err) {
-        console.error(err);
+        console.error({ error_message: 'fetchAllUserItems', err });
         throw err;
     }
 }*/

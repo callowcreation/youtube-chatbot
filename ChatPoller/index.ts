@@ -13,6 +13,7 @@ import { replaceManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
 import { getOmittedItem } from "../DataAccess/omitted-item-repository";
 import { CommandError } from "../Errors/command-error";
+import { resolve } from "path/posix";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -47,6 +48,9 @@ async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller>
 }
 
 async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     oauth2Client.setCredentials(result.credentials);
     try {
 
@@ -70,7 +74,7 @@ async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
                 } break;
                 default: {
                     // log error to db
-                    console.error(err);
+                    console.error({ error_message: `getLiveChatMessages channelId: ${result.live_item.rowKey}` }, err);
                 } break;
             }
         }
@@ -81,7 +85,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     var timeStamp = new Date().toISOString();
 
     if (myTimer.isPastDue) {
-        console.log('Chat Poller is running late!');
+        console.log({ log_message: 'Chat Poller is running late!' });
     }
     //console.log('Chat Poller function ran!', timeStamp);
 
@@ -131,11 +135,11 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 }
             } catch (err) {
                 if (err instanceof LiveChatError) {
-                    console.error(err);
+                    console.error({ error_message: `Chat Poller LiveChatError channelId: ${live_item.rowKey}` }, err);
                     await deleteLiveItem(live_item.rowKey);
                 } else {
                     // log error
-                    console.error(err);
+                    console.error({ error_message: `Chat Poller channelId: ${live_item.rowKey}` }, err);
                 }
             }
         }
@@ -173,6 +177,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         }
 
         for (let i = 0; i < chatMessageItems.length; i++) {
+
             const chatMessageItem = chatMessageItems[i];
             const message = chatMessageItem.snippet.displayMessage;
             if (message.startsWith('$')) {
@@ -195,12 +200,12 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                         }).then(json => {
                             //console.log({ json });
                         }).catch(e => {
-                            console.error(e);
+                            console.error({ error_message: `liveChatMessages insert channelId: ${chatMessageItem.live_item.rowKey}` }, e);
                         });
                     }
                 } catch (err) {
                     if (err instanceof CommandError) {
-                        console.error(err);
+                        console.error({ error_message: `CommandError chat message: ${chatMessageItem.snippet.displayMessage}` }, err);
                         if (err.send === true) {
                             service.liveChatMessages.insert({
                                 auth: oauth2Client,
@@ -217,20 +222,20 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                             }).then(json => {
                                 //console.log({ json });
                             }).catch(e => {
-                                console.error(e);
+                                console.error({ error_message: `CommandError liveChatMessages insert channelId: ${chatMessageItem.live_item.rowKey}` }, e);
                             });
                         }
                     } else {
                         // log error
-                        console.error(err);
+                        console.error({ error_message: `Error processing chat message: ${chatMessageItem.snippet.displayMessage}` }, err);
                     }
                 }
             } else {
-                console.log(`Just a message: ${message}`);
+                console.log({ log_message: `Just a message: ${message}` });
             }
         }
     } else {
-        console.log('No Live Item Records');
+        console.log({ log_message: 'No Live Item Records' });
     }
 
 };

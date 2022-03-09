@@ -34,7 +34,7 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
         const delResult = await deleteChatterItems(omitItem.partitionKey, omitItem.rowKey)
             .catch(e => {
                 if (e.statusCode !== 404) {
-                    console.error(e);
+                    console.error({ error_message: `deleteChatterItems ${name}` }, e);
                     throw e;
                 }
             });
@@ -45,7 +45,7 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
             message: `the ${username} is now omitted from transactions.`,
         } as CommandOutput;
     } catch (err) {
-        console.error(err);
+        console.error({ error_message: `Command error ${name} - ${message_item.snippet.displayMessage}` }, err);
 
         return {
             name: name,

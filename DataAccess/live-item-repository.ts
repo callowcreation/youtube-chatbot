@@ -21,7 +21,10 @@ export async function getAllLiveItems(): Promise<LiveItemRecord[]> {
             select: ['rowKey', 'liveChatId', 'pageToken']
         }
     });
-    
+
+
+    console.log({ log_message: 'Getting all live items' });
+
     const liveEntities: LiveItemRecord[] = [];
     try {
         const iterator = listResults.byPage({ maxPageSize: 10 });
@@ -36,24 +39,30 @@ export async function getAllLiveItems(): Promise<LiveItemRecord[]> {
             });
             liveEntities.push(...liveItemRecord);
         }
+        
+        console.log({ log_message: 'Getting all live items count: ' + liveEntities.length });
     } catch (err) {
-        console.error(err);
+        console.error({ error_message: 'Getting all live items ERROR' }, err);
     }
 
     return liveEntities;
 }
 
 export async function getLiveItem(rowKey: string): Promise<LiveItemRecord> {
-    return client.getEntity(partitionKey, rowKey);
+    const entity = await client.getEntity(partitionKey, rowKey) as LiveItemRecord;
+    console.log({ log_message: 'Get live chat id from storage', liveChatId: entity.liveChatId });
+    return entity;
 }
 
-export async function updateLiveItem(liveItem: LiveItemRecord) { 
+export async function updateLiveItem(liveItem: LiveItemRecord) {
     const entity = makeLiveItemEntity(liveItem);
+    console.log({ log_message: 'Updated live chat id', liveChatId: entity.liveChatId });
     await client.updateEntity(entity, 'Merge');
 }
 
 export async function createLiveItem(liveItem: LiveItemRecord) {
     const entity = makeLiveItemEntity(liveItem);
+    console.log({ log_message: 'Created live chat id', liveChatId: entity.liveChatId });
     await client.createEntity(entity);
 }
 

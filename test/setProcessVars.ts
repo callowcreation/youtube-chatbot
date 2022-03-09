@@ -3,7 +3,6 @@ import * as localSettings from '../local.settings.json';
 export default function () {
     process.env.AzureWebJobsStorage = localSettings.Values.AzureWebJobsStorage;
     process.env.FUNCTIONS_WORKER_RUNTIME = localSettings.Values.FUNCTIONS_WORKER_RUNTIME;
-    process.env.ytchatbotdbdev_DOCUMENTDB = localSettings.Values.ytchatbotdbdev_DOCUMENTDB;
     process.env.ytchatbot_KEYSTORE = localSettings.Values.ytchatbot_KEYSTORE;
     process.env.client_id = localSettings.Values.client_id;
     process.env.project_id = localSettings.Values.project_id;

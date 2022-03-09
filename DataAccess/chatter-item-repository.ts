@@ -47,7 +47,7 @@ export async function getAllChatterItems(partitionKey: string, issuerId: string,
             await deleteChatterItems(entity.partitionKey, entity.rowKey)
                 .catch(e => {
                     if (e.statusCode !== 404) {
-                        console.error(e);
+                        console.error({ error_message: `topEntities deleteChatterItems ${entity.rowKey}` }, e);
                         throw e;
                     }
                 });;

@@ -23,7 +23,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 
     oauth2Client.getToken(code, async (err, token) => {
         if (err) {
-            console.error('Error while trying to retrieve access token', err);
+            console.error({ error_message: 'Error while trying to retrieve access token' }, err);
             context.res.status(500);
             context.res.body = { error: { code: err.code, name: err.name, message: err.message } };
         } else {

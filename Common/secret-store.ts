@@ -2,12 +2,13 @@ import { DefaultAzureCredential } from "@azure/identity";
 import { SecretClient, SetSecretOptions } from "@azure/keyvault-secrets";
 import * as jsonwebtoken from 'jsonwebtoken';
 
-
 const secret = Buffer.from(process.env.client_secret, 'base64');
 const keyVaultName = process.env["ytchatbot_KEYSTORE"];
 const url = "https://" + keyVaultName + ".vault.azure.net";
 
-const credential = new DefaultAzureCredential();
+const credential = new DefaultAzureCredential({
+
+});
 const client = new SecretClient(url, credential);
 
 export function verifyAndDecodeJwt(jwt_token: string) {
