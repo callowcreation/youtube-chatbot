@@ -9,10 +9,10 @@ export const platform: string = 'youtube';
 
 const key = 'api-token-key';
 const client_credentials: ClientCredentials = {
-    url: process.env.api_url,
-    client_id: process.env.api_client_id,
-    client_secret: process.env.api_client_secret,
-    audience: process.env.api_audience,
+    url: process.env.bitcorn_api_url,
+    gcp_client_id: process.env.bitcorn_api_client_id,
+    gcp_client_secret: process.env.bitcorn_api_client_secret,
+    audience: process.env.bitcorn_api_audience,
 };
 
 const cached: Cached = {
@@ -23,12 +23,12 @@ const cached: Cached = {
 
 // Verify the header and the enclosed JWT.
 function verifyAndDecode(jwt_token: string) {
-    const extension_secret = Buffer.from(process.env.client_secret, 'base64');
+    const extension_secret = Buffer.from(process.env.gcp_client_secret, 'base64');
     return jsonwebtoken.verify(jwt_token, extension_secret, { algorithms: ['HS256'] });
 }
 
 function makeJwtToken(payload: Credentials | Cached) {
-    const extension_secret = Buffer.from(process.env.client_secret, 'base64');
+    const extension_secret = Buffer.from(process.env.gcp_client_secret, 'base64');
     return jsonwebtoken.sign(payload, extension_secret, { algorithm: 'HS256' });
 }
 
@@ -78,8 +78,8 @@ async function fetchToken(client_credentials: ClientCredentials) {
             'Content-Type': 'application/json'
         },
         body: new URLSearchParams({
-            client_id: client_credentials.client_id,
-            client_secret: client_credentials.client_secret,
+            gcp_client_id: client_credentials.gcp_client_id,
+            gcp_client_secret: client_credentials.gcp_client_secret,
             audience: client_credentials.audience,
             grant_type: 'client_credentials'
         })

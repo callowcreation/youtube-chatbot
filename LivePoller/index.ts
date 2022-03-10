@@ -18,8 +18,8 @@ const SCOPES = [
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube',
 ];
-const clientSecret = process.env.client_secret;
-const clientId = process.env.client_id;
+const clientSecret = process.env.gcp_client_secret;
+const clientId = process.env.gcp_client_id;
 const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
@@ -52,8 +52,8 @@ async function fetchCredentials(youtubeRefreshToken: string): Promise<Credential
             'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: new URLSearchParams({
-            client_id: clientId,
-            client_secret: clientSecret,
+            gcp_client_id: clientId,
+            gcp_client_secret: clientSecret,
             grant_type: 'refresh_token',
             refresh_token: youtubeRefreshToken
         })

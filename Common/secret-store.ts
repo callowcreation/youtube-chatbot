@@ -2,8 +2,8 @@ import { DefaultAzureCredential } from "@azure/identity";
 import { SecretClient, SetSecretOptions } from "@azure/keyvault-secrets";
 import * as jsonwebtoken from 'jsonwebtoken';
 
-const secret = Buffer.from(process.env.client_secret, 'base64');
-const keyVaultName = process.env["ytchatbot_KEYSTORE"];
+const secret = Buffer.from(process.env.gcp_client_secret, 'base64');
+const keyVaultName = process.env["keyvault_account_name"];
 const url = "https://" + keyVaultName + ".vault.azure.net";
 
 const credential = new DefaultAzureCredential({

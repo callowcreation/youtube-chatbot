@@ -4,8 +4,8 @@ import { google } from 'googleapis';
 
 const OAuth2 = google.auth.OAuth2;
 
-const clientSecret = process.env.client_secret;
-const clientId = process.env.client_id;
+const clientSecret = process.env.gcp_client_secret;
+const clientId = process.env.gcp_client_id;
 const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 const SCOPES = [

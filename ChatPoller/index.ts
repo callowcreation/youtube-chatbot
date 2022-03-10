@@ -21,8 +21,8 @@ const SCOPES = [
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube',
 ];
-const clientSecret = process.env.client_secret;
-const clientId = process.env.client_id;
+const clientSecret = process.env.gcp_client_secret;
+const clientId = process.env.gcp_client_id;
 const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
@@ -50,7 +50,7 @@ async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller>
 async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
 
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     oauth2Client.setCredentials(result.credentials);
     try {
 
@@ -87,104 +87,128 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     if (myTimer.isPastDue) {
         console.log({ log_message: 'Chat Poller is running late!' });
     }
-    //console.log('Chat Poller function ran!', timeStamp);
-
+    
     const liveItems = await getAllLiveItems();
 
-    if (liveItems && liveItems.length > 0) {
+    if (liveItems.length === 0) {
+        console.log({ log_message: 'No Live Item Records' });
+        return;
+    }
 
-        const promises = [];
-        for (let i = 0; i < liveItems.length; i++) {
-            const liveItem = liveItems[i] as LiveItemRecord;
-            promises.push(getLiveCredentials(liveItem));
+    const promises = [];
+    for (let i = 0; i < liveItems.length; i++) {
+        const liveItem = liveItems[i] as LiveItemRecord;
+        promises.push(getLiveCredentials(liveItem));
+    }
+    const results = (await Promise.all(promises)) as ChatPoller[];
+
+    const liveChatMessagesPromises = [];
+    for (let i = 0; i < results.length; i++) {
+        const result = results[i] as ChatPoller;
+        liveChatMessagesPromises.push(getLiveChatMessages(result));
+    }
+    const liveChatResponses = (await Promise.all(liveChatMessagesPromises)) as ChatResponse[];
+
+    const chatMessageItems = [] as MessageItem[];
+    for (let i = 0; i < liveChatResponses.length; i++) {
+        const { live_item, data } = liveChatResponses[i] as ChatResponse;
+
+        try {
+
+            if (data.offlineAt) {
+                throw new LiveChatError(`Stream went offline: ${data.offlineAt}`);
+            }
+            if (data.items.length > 0) {
+                //console.log(data.items);
+                const messageItems = data.items.map(x => ({
+                    authorDetails: x.authorDetails,
+                    snippet: x.snippet,
+                    live_item: live_item
+                })) as MessageItem[];
+                chatMessageItems.push(...messageItems);
+            }
+            if (data.nextPageToken) {
+                const liveItem = {
+                    rowKey: live_item.rowKey,
+                    liveChatId: live_item.liveChatId,
+                    pageToken: data.nextPageToken
+                } as LiveItemRecord;
+                await updateLiveItem(liveItem);
+            }
+        } catch (err) {
+            if (err instanceof LiveChatError) {
+                console.error({ error_message: `Chat Poller LiveChatError channelId: ${live_item.rowKey}` }, err);
+                await deleteLiveItem(live_item.rowKey);
+            } else {
+                // log error
+                console.error({ error_message: `Chat Poller channelId: ${live_item.rowKey}` }, err);
+            }
         }
-        const results = (await Promise.all(promises)) as ChatPoller[];
+    }
 
-        const liveChatMessagesPromises = [];
-        for (let i = 0; i < results.length; i++) {
-            const result = results[i] as ChatPoller;
-            liveChatMessagesPromises.push(getLiveChatMessages(result));
+    const chatterItemRecords = chatMessageItems.map(x => {
+        return {
+            rowKey: x.snippet.authorChannelId,
+            partitionKey: x.live_item.rowKey,
+            liveChatId: x.live_item.liveChatId,
+            displayName: x.authorDetails.displayName,
+            displayMessage: x.snippet.displayMessage
+        } as ChatterItemRecord;
+    });
+
+    if (chatterItemRecords.length > 0) {
+
+        const promises: Promise<string>[] = [];
+        for (let i = 0; i < chatterItemRecords.length; i++) {
+            const { displayName, partitionKey: channelId } = chatterItemRecords[i];
+            const promise = getOmittedItem(channelId, displayName)
+                .then(x => x ? x.rowKey : '')
+                .catch(e => {
+                    if (e.statusCode !== 404) throw e;
+                    return null;
+                });
+            promises.push(promise);
         }
-        const liveChatResponses = (await Promise.all(liveChatMessagesPromises)) as ChatResponse[];
+        const omittedResults = await Promise.all(promises);
 
-        const chatMessageItems = [] as MessageItem[];
-        for (let i = 0; i < liveChatResponses.length; i++) {
-            const { live_item, data } = liveChatResponses[i] as ChatResponse;
+        const withoutOmittedItems: ChatterItemRecord[] = chatterItemRecords.filter(x => x && !omittedResults.includes(x.displayName));
+        if (withoutOmittedItems.length > 0) {
+                /*const result =*/ await replaceManyChatterItems(withoutOmittedItems);
+            //console.log({ result });
+        }
+    }
 
+    for (let i = 0; i < chatMessageItems.length; i++) {
+
+        const chatMessageItem = chatMessageItems[i];
+        const message = chatMessageItem.snippet.displayMessage;
+        if (message.startsWith('$')) {
             try {
-
-                if (data.offlineAt) {
-                    throw new LiveChatError(`Stream went offline: ${data.offlineAt}`);
-                }
-                if (data.items.length > 0) {
-                    //console.log(data.items);
-                    const messageItems = data.items.map(x => ({
-                        authorDetails: x.authorDetails,
-                        snippet: x.snippet,
-                        live_item: live_item
-                    })) as MessageItem[];
-                    chatMessageItems.push(...messageItems);
-                }
-                if (data.nextPageToken) {
-                    const liveItem = {
-                        rowKey: live_item.rowKey,
-                        liveChatId: live_item.liveChatId,
-                        pageToken: data.nextPageToken
-                    } as LiveItemRecord;
-                    await updateLiveItem(liveItem);
+                const result = await executeCommand(chatMessageItem);
+                //console.log(result);
+                if (result.send === true) {
+                    service.liveChatMessages.insert({
+                        auth: oauth2Client,
+                        part: ['snippet'],
+                        requestBody: {
+                            snippet: {
+                                liveChatId: chatMessageItem.live_item.liveChatId,
+                                type: "textMessageEvent",
+                                textMessageDetails: {
+                                    messageText: `@${chatMessageItem.authorDetails.displayName} ${result.message}`
+                                }
+                            }
+                        }
+                    }).then(json => {
+                        //console.log({ json });
+                    }).catch(e => {
+                        console.error({ error_message: `liveChatMessages insert channelId: ${chatMessageItem.live_item.rowKey}` }, e);
+                    });
                 }
             } catch (err) {
-                if (err instanceof LiveChatError) {
-                    console.error({ error_message: `Chat Poller LiveChatError channelId: ${live_item.rowKey}` }, err);
-                    await deleteLiveItem(live_item.rowKey);
-                } else {
-                    // log error
-                    console.error({ error_message: `Chat Poller channelId: ${live_item.rowKey}` }, err);
-                }
-            }
-        }
-
-        const chatterItemRecords = chatMessageItems.map(x => {
-            return {
-                rowKey: x.snippet.authorChannelId,
-                partitionKey: x.live_item.rowKey,
-                liveChatId: x.live_item.liveChatId,
-                displayName: x.authorDetails.displayName,
-                displayMessage: x.snippet.displayMessage
-            } as ChatterItemRecord;
-        });
-
-        if (chatterItemRecords.length > 0) {
-
-            const promises: Promise<string>[] = [];
-            for (let i = 0; i < chatterItemRecords.length; i++) {
-                const { displayName, partitionKey: channelId } = chatterItemRecords[i];
-                const promise = getOmittedItem(channelId, displayName)
-                    .then(x => x ? x.rowKey : '')
-                    .catch(e => {
-                        if (e.statusCode !== 404) throw e;
-                        return null;
-                    });
-                promises.push(promise);
-            }
-            const omittedResults = await Promise.all(promises);
-
-            const withoutOmittedItems: ChatterItemRecord[] = chatterItemRecords.filter(x => x && !omittedResults.includes(x.displayName));
-            if (withoutOmittedItems.length > 0) {
-                /*const result =*/ await replaceManyChatterItems(withoutOmittedItems);
-                //console.log({ result });
-            }
-        }
-
-        for (let i = 0; i < chatMessageItems.length; i++) {
-
-            const chatMessageItem = chatMessageItems[i];
-            const message = chatMessageItem.snippet.displayMessage;
-            if (message.startsWith('$')) {
-                try {
-                    const result = await executeCommand(chatMessageItem);
-                    //console.log(result);
-                    if (result.send === true) {
+                if (err instanceof CommandError) {
+                    console.error({ error_message: `CommandError chat message: ${chatMessageItem.snippet.displayMessage}` }, err);
+                    if (err.send === true) {
                         service.liveChatMessages.insert({
                             auth: oauth2Client,
                             part: ['snippet'],
@@ -193,51 +217,25 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                                     liveChatId: chatMessageItem.live_item.liveChatId,
                                     type: "textMessageEvent",
                                     textMessageDetails: {
-                                        messageText: `@${chatMessageItem.authorDetails.displayName} ${result.message}`
+                                        messageText: `@${chatMessageItem.authorDetails.displayName} $${err.name} command failed.  ${err.message}`
                                     }
                                 }
                             }
                         }).then(json => {
                             //console.log({ json });
                         }).catch(e => {
-                            console.error({ error_message: `liveChatMessages insert channelId: ${chatMessageItem.live_item.rowKey}` }, e);
+                            console.error({ error_message: `CommandError liveChatMessages insert channelId: ${chatMessageItem.live_item.rowKey}` }, e);
                         });
                     }
-                } catch (err) {
-                    if (err instanceof CommandError) {
-                        console.error({ error_message: `CommandError chat message: ${chatMessageItem.snippet.displayMessage}` }, err);
-                        if (err.send === true) {
-                            service.liveChatMessages.insert({
-                                auth: oauth2Client,
-                                part: ['snippet'],
-                                requestBody: {
-                                    snippet: {
-                                        liveChatId: chatMessageItem.live_item.liveChatId,
-                                        type: "textMessageEvent",
-                                        textMessageDetails: {
-                                            messageText: `@${chatMessageItem.authorDetails.displayName} $${err.name} command failed.  ${err.message}`
-                                        }
-                                    }
-                                }
-                            }).then(json => {
-                                //console.log({ json });
-                            }).catch(e => {
-                                console.error({ error_message: `CommandError liveChatMessages insert channelId: ${chatMessageItem.live_item.rowKey}` }, e);
-                            });
-                        }
-                    } else {
-                        // log error
-                        console.error({ error_message: `Error processing chat message: ${chatMessageItem.snippet.displayMessage}` }, err);
-                    }
+                } else {
+                    // log error
+                    console.error({ error_message: `Error processing chat message: ${chatMessageItem.snippet.displayMessage}` }, err);
                 }
-            } else {
-                console.log({ log_message: `Just a message: ${message}` });
             }
+        } else {
+            console.log({ log_message: `Just a message: ${message}` });
         }
-    } else {
-        console.log({ log_message: 'No Live Item Records' });
     }
-
 };
 
 export default timerTrigger;

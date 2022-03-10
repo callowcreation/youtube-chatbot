@@ -9,8 +9,8 @@ import { Credentials } from "../Interfaces/credentials-interface";
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
 
-const clientSecret = process.env.client_secret;
-const clientId = process.env.client_id;
+const clientSecret = process.env.gcp_client_secret;
+const clientId = process.env.gcp_client_id;
 const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
