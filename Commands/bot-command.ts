@@ -1,4 +1,3 @@
-
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { createOmittedItem } from "../DataAccess/omitted-item-repository";
 import { OmittedItemRecord } from "../Models/omitted-item-record";

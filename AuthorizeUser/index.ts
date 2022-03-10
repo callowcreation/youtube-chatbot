@@ -1,5 +1,4 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
-
 import { google } from 'googleapis';
 
 const OAuth2 = google.auth.OAuth2;

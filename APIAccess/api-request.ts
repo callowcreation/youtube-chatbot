@@ -1,13 +1,14 @@
 import fetch from 'node-fetch';
-import * as jsonwebtoken from 'jsonwebtoken';
-import { secretStore } from '../Common/secret-store';
+
+import { secretStore, jwtToken } from '../Common/secret-store';
 import { ApiRequestError } from '../Errors/api-request-error';
 import { Cached, ClientCredentials, RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
-import { APICredentials, Credentials } from '../Interfaces/credentials-interface';
+import { APICredentials } from '../Interfaces/credentials-interface';
 
 export const platform: string = 'youtube';
 
-const key = 'api-token-key';
+const key = 'bitcorn-api-token';
+
 const client_credentials: ClientCredentials = {
     url: process.env.bitcorn_api_url,
     gcp_client_id: process.env.bitcorn_api_client_id,
@@ -21,17 +22,6 @@ const cached: Cached = {
     expires_time: 0
 };
 
-// Verify the header and the enclosed JWT.
-function verifyAndDecode(jwt_token: string) {
-    const extension_secret = Buffer.from(process.env.gcp_client_secret, 'base64');
-    return jsonwebtoken.verify(jwt_token, extension_secret, { algorithms: ['HS256'] });
-}
-
-function makeJwtToken(payload: Credentials | Cached) {
-    const extension_secret = Buffer.from(process.env.gcp_client_secret, 'base64');
-    return jsonwebtoken.sign(payload, extension_secret, { algorithm: 'HS256' });
-}
-
 async function getCachedToken(client_credentials: ClientCredentials) {
     const d = new Date();
     const seconds = Math.round(d.getTime() / 1000);
@@ -40,7 +30,7 @@ async function getCachedToken(client_credentials: ClientCredentials) {
     try {
         const keyVaultSecret = await secretStore.getJwt(key);
 
-        const payload = verifyAndDecode(keyVaultSecret.value) as APICredentials;
+        const payload = jwtToken.verify(keyVaultSecret.value) as APICredentials;
         cached.access_token = payload.access_token;
         cached.expires_in = payload.expires_in;
         cached.expires_time = payload.expires_time;
@@ -63,7 +53,7 @@ async function getCachedToken(client_credentials: ClientCredentials) {
         const expiresOn = new Date();
         expiresOn.setSeconds(expiresOn.getSeconds() + cached.expires_in);
 
-        const jwt = makeJwtToken(payload);
+        const jwt = jwtToken.sign(payload);
         await secretStore.setJwt(key, jwt, { expiresOn });
     }
 

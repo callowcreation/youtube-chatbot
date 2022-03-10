@@ -11,7 +11,6 @@ class Endpoint {
         const endpoint = param ? `/${param}` : ``;
         return `${this.apiUrl}/${this.base}${endpoint}`;
     }
-    
 }
 
 class Api {

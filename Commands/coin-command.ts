@@ -1,4 +1,3 @@
-
 import { CommandError, CommandErrorCode } from "../Errors/command-error";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { CommandOutput } from "../Interfaces/command-output-interface";

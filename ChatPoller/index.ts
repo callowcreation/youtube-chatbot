@@ -1,26 +1,21 @@
 import { AzureFunction, Context } from "@azure/functions"
-
 import { google } from 'googleapis';
 
 import { deleteLiveItem, getAllLiveItems, updateLiveItem } from "../DataAccess/live-item-repository";
 import { ChatPoller, ChatResponse, MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { LiveChatError } from '../Errors/live-chat-error';
-import { secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
+import { secretStore, jwtToken } from "../Common/secret-store";
 import { executeCommand } from "../Commands/commander";
 import { Credentials } from "../Interfaces/credentials-interface";
 import { replaceManyChatterItems } from "../DataAccess/chatter-item-repository";
 import { ChatterItemRecord } from "../Models/chatter-item-record";
 import { getOmittedItem } from "../DataAccess/omitted-item-repository";
 import { CommandError } from "../Errors/command-error";
-import { resolve } from "path/posix";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
-const SCOPES = [
-    'https://www.googleapis.com/auth/youtube.readonly',
-    'https://www.googleapis.com/auth/youtube',
-];
+
 const clientSecret = process.env.gcp_client_secret;
 const clientId = process.env.gcp_client_id;
 const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
@@ -36,20 +31,23 @@ async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller>
         });
 
     if (keyVaultSecret.value !== null) {
-        const payload = verifyAndDecodeJwt(keyVaultSecret.value) as Credentials;
-        const credentials: Credentials = {
-            ...payload
-        };
-        return {
-            live_item: liveItem,
-            credentials
-        } as ChatPoller;
+        try {
+            const payload = jwtToken.verify(keyVaultSecret.value) as Credentials;
+            const credentials: Credentials = {
+                ...payload
+            };
+            return {
+                live_item: liveItem,
+                credentials
+            } as ChatPoller;
+        } catch (err) {
+            console.error({ error_message: err.message, err });
+            throw err;
+        }
     }
 }
 
 async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
-
-    await new Promise(resolve => setTimeout(resolve, 500));
 
     oauth2Client.setCredentials(result.credentials);
     try {
@@ -87,7 +85,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     if (myTimer.isPastDue) {
         console.log({ log_message: 'Chat Poller is running late!' });
     }
-    
+
     const liveItems = await getAllLiveItems();
 
     if (liveItems.length === 0) {

@@ -1,4 +1,5 @@
 import { odata } from "@azure/data-tables";
+
 import { LiveItemRecord } from "../Models/live-item-record";
 import { getStorageTableClient } from "./storage-helper";
 
@@ -21,7 +22,6 @@ export async function getAllLiveItems(): Promise<LiveItemRecord[]> {
             select: ['rowKey', 'liveChatId', 'pageToken']
         }
     });
-
 
     console.log({ log_message: 'Getting all live items' });
 

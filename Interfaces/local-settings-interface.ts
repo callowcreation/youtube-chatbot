@@ -24,6 +24,7 @@ export interface Values {
     bitcorn_api_audience: string;
     redirect_uri_dev: string;
     redirect_uri_prod: string;
+    generated_secret_for_jwt_token: string;
     IS_DEV: string;
 }
 

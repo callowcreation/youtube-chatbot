@@ -1,5 +1,4 @@
 
-
 export enum CommandErrorCode {
     Malformed = 1,
     CoinNotSupported = 2,

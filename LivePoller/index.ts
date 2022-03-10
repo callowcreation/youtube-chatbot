@@ -8,9 +8,8 @@ import { createLiveItem, deleteLiveItem, getLiveItem, updateLiveItem } from "../
 import { LiveItemRecord } from "../Models/live-item-record";
 import { getRequest } from "../APIAccess/api-request";
 import { ApiUser } from "../Interfaces/api-interfaces";
-import { makeJwtToken, secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
+import { secretStore, jwtToken } from "../Common/secret-store";
 import { endpoints } from '../APIAccess/endpoints';
-import { createOmittedItem } from "../DataAccess/omitted-item-repository";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -40,7 +39,7 @@ async function fetchCredentialsJWT(youtubeRefreshToken: string, credentials: Cre
     const expiresOn = new Date();
     expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
 
-    const jwttoken = makeJwtToken(credentials);
+    const jwttoken = jwtToken.sign(credentials);
     return { jwttoken, expiresOn };
 }
 
@@ -87,7 +86,7 @@ async function getCredentials(youtubeId: string, youtubeRefreshToken: string): P
         const { jwttoken, expiresOn } = await fetchCredentialsJWT(youtubeRefreshToken, credentials);
         await secretStore.setJwt(youtubeId, jwttoken, { expiresOn });
     } else {
-        const payload = verifyAndDecodeJwt(keyVaultSecret.value) as Credentials;
+        const payload = jwtToken.verify(keyVaultSecret.value) as Credentials;
 
         if (payload.access_token === null || payload.access_token === undefined) {
             const { jwttoken, expiresOn } = await fetchCredentialsJWT(youtubeRefreshToken, credentials);        

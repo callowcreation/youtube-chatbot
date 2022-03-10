@@ -1,7 +1,7 @@
 import { odata } from "@azure/data-tables";
+
 import { ChatterItemRecord } from "../Models/chatter-item-record";
 import { getStorageTableClient } from "./storage-helper";
-
 
 const tableName = 'chattercontainer';
 const client = getStorageTableClient(tableName);

@@ -1,9 +1,9 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
-
 import { google } from 'googleapis';
+
 import { postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
-import { makeJwtToken, secretStore } from "../Common/secret-store";
+import { secretStore, jwtToken } from "../Common/secret-store";
 import { Credentials } from "../Interfaces/credentials-interface";
 
 const OAuth2 = google.auth.OAuth2;
@@ -51,7 +51,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                 const expiresOn = new Date();
                 expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
 
-                const payload = makeJwtToken(credentials);
+                const payload = jwtToken.sign(credentials);
                 await secretStore.setJwt(channelId, payload, { expiresOn });
 
                 const result = await postRequest(endpoints.api.user.path('updatetokens'), channelId, {
