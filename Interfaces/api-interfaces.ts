@@ -1,8 +1,8 @@
 
 export interface ClientCredentials {
     url: string | undefined,
-    gcp_client_id: string,
-    gcp_client_secret: string,
+    client_id: string,
+    client_secret: string,
     audience: string,
 }
 

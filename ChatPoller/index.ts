@@ -1,3 +1,5 @@
+
+// "schedule": "*/10 * * * * *"
 import { AzureFunction, Context } from "@azure/functions"
 import { google } from 'googleapis';
 
@@ -42,13 +44,15 @@ async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller>
             } as ChatPoller;
         } catch (err) {
             console.error({ error_message: err.message, err });
+            if (err.message === 'invalid signature') {
+                return null;
+            }
             throw err;
         }
     }
 }
 
 async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
-
     oauth2Client.setCredentials(result.credentials);
     try {
 

@@ -11,8 +11,8 @@ const key = 'bitcorn-api-token';
 
 const client_credentials: ClientCredentials = {
     url: process.env.bitcorn_api_url,
-    gcp_client_id: process.env.bitcorn_api_client_id,
-    gcp_client_secret: process.env.bitcorn_api_client_secret,
+    client_id: process.env.bitcorn_api_client_id,
+    client_secret: process.env.bitcorn_api_client_secret,
     audience: process.env.bitcorn_api_audience,
 };
 
@@ -68,8 +68,8 @@ async function fetchToken(client_credentials: ClientCredentials) {
             'Content-Type': 'application/json'
         },
         body: new URLSearchParams({
-            gcp_client_id: client_credentials.gcp_client_id,
-            gcp_client_secret: client_credentials.gcp_client_secret,
+            gcp_client_id: client_credentials.client_id,
+            gcp_client_secret: client_credentials.client_secret,
             audience: client_credentials.audience,
             grant_type: 'client_credentials'
         })

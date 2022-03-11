@@ -1,3 +1,4 @@
+// "schedule": "0 */5 * * * *"
 import { AzureFunction, Context } from "@azure/functions"
 
 import { google } from 'googleapis';
@@ -23,7 +24,7 @@ const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : 
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
 
-function setCredentials(credentials: Credentials, youtubeRefreshToken: string, json: Credentials) {
+function setCredentialsVars(credentials: Credentials, youtubeRefreshToken: string, json: Credentials) {
     credentials.refresh_token = youtubeRefreshToken;
     credentials.access_token = json.access_token;
     credentials.scope = json.scope;
@@ -31,19 +32,8 @@ function setCredentials(credentials: Credentials, youtubeRefreshToken: string, j
     credentials.expires_in = json.expires_in;
 }
 
-async function fetchCredentialsJWT(youtubeRefreshToken: string, credentials: Credentials) {
-    const json = await fetchCredentials(youtubeRefreshToken);
-
-    setCredentials(credentials, youtubeRefreshToken, json);
-
-    const expiresOn = new Date();
-    expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
-
-    const jwttoken = jwtToken.sign(credentials);
-    return { jwttoken, expiresOn };
-}
-
-async function fetchCredentials(youtubeRefreshToken: string): Promise<Credentials> {
+async function fetchGoogleCredentialsJWT(youtubeRefreshToken: string, credentials: Credentials) {
+    
     const result = await fetch('https://accounts.google.com/o/oauth2/token', {
         method: 'POST',
         headers: {
@@ -51,15 +41,24 @@ async function fetchCredentials(youtubeRefreshToken: string): Promise<Credential
             'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: new URLSearchParams({
-            gcp_client_id: clientId,
-            gcp_client_secret: clientSecret,
+            client_id: clientId,
+            client_secret: clientSecret,
             grant_type: 'refresh_token',
             refresh_token: youtubeRefreshToken
         })
     });
 
     const json = (await result.json()) as Credentials;
-    return json;
+
+    let jwttoken = null; 
+    const expiresOn = new Date();
+
+    if(!json.error) {
+        setCredentialsVars(credentials, youtubeRefreshToken, json);
+        jwttoken = jwtToken.sign(credentials); 
+        expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
+    }
+    return { jwttoken, expiresOn };
 }
 
 async function getCredentials(youtubeId: string, youtubeRefreshToken: string): Promise<Credentials> {
@@ -78,28 +77,21 @@ async function getCredentials(youtubeId: string, youtubeRefreshToken: string): P
         refresh_token: youtubeRefreshToken,
         scope: SCOPES.join(' '),
         token_type: 'Bearer',
-        access_token: '',
+        access_token: null,
         expires_in: 0
     };
 
     if (keyVaultSecret.value === null) {
-        const { jwttoken, expiresOn } = await fetchCredentialsJWT(youtubeRefreshToken, credentials);
-        await secretStore.setJwt(youtubeId, jwttoken, { expiresOn });
+        const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials);
+        if(jwttoken !== null) await secretStore.setJwt(youtubeId, jwttoken, { expiresOn });
     } else {
         const payload = jwtToken.verify(keyVaultSecret.value) as Credentials;
 
         if (payload.access_token === null || payload.access_token === undefined) {
-            const { jwttoken, expiresOn } = await fetchCredentialsJWT(youtubeRefreshToken, credentials);        
-            await secretStore.setJwt(youtubeId, jwttoken, { expiresOn });
+            const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials);        
+            if(jwttoken !== null) await secretStore.setJwt(youtubeId, jwttoken, { expiresOn });
         } else {
-            /*credentials.refresh_token = payload.refresh_token;
-            credentials.access_token = payload.access_token;
-            credentials.scope = payload.scope;
-            credentials.token_type = payload.token_type;
-            credentials.expires_in = payload.expires_in;*/   
-            
-            setCredentials(credentials, payload.refresh_token, payload);
-
+            setCredentialsVars(credentials, payload.refresh_token, payload);
         }
     }
 
@@ -127,14 +119,15 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             if (youtubeId === null || youtubeId === undefined) continue;
 
             if (youtubeId && youtubeRefreshToken) {
-                try {
+                promises.push(getCredentials(youtubeId, youtubeRefreshToken));
+                /*try {
                     promises.push(getCredentials(youtubeId, youtubeRefreshToken));
                 } catch (err) {
                     if (err.statusCode !== 404) {
                         console.error({ error_message: `${youtubeUsername} id ${userId} youtubeRefreshToken: ${youtubeRefreshToken}` }, err);
                         throw err;
                     }
-                }
+                }*/
             } else {
                 console.warn({ warn_message: `User ${youtubeUsername} id ${userId} has no youtube id or youtube refresh token` });
             }
@@ -145,7 +138,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         for (let i = 0; i < results.length; i++) {
             const credentials = results[i];
             if (credentials === undefined) continue;
-            if (credentials.access_token === null || credentials.access_token === undefined) {
+            if (!credentials.access_token) {
                 console.log({ log_message: `User not sync'd`, credentials });
                 continue;
             }
@@ -190,7 +183,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     }
                 }
             } catch (err) {
-                console.error({ error_message: 'invalid_grant' }, err);
+                console.error({ error_message: err.statusText });
             }
         }
     } else {

@@ -6,6 +6,8 @@ export interface Credentials {
 	scope: string;
 	token_type: string;
 	expires_in: number;
+	error?: string;
+	error_description?: string;
 }
 
 export interface APICredentials {
