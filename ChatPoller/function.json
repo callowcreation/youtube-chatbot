@@ -4,7 +4,7 @@
       "name": "chatPoller",
       "type": "timerTrigger",
       "direction": "in",
-      "schedule": "0 */1 * * * *"
+      "schedule": "*/30 * * * * *"
     }
   ],
   "scriptFile": "../dist/ChatPoller/index.js"

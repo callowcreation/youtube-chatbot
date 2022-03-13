@@ -1,4 +1,6 @@
 // "schedule": "0 */5 * * * *"
+// "schedule": "0 */1 * * * *"
+
 import { AzureFunction, Context } from "@azure/functions"
 
 import { google } from 'googleapis';
@@ -9,8 +11,9 @@ import { createLiveItem, deleteLiveItem, getLiveItem, updateLiveItem } from "../
 import { LiveItemRecord } from "../Models/live-item-record";
 import { getRequest } from "../APIAccess/api-request";
 import { ApiUser } from "../Interfaces/api-interfaces";
-import { secretStore, jwtToken } from "../Common/secret-store";
+import { readJwt, signJwt, verifyJwt, writeJwt } from "../Common/secret-store";
 import { endpoints } from '../APIAccess/endpoints';
+import { getStorageQueueClient } from "../DataAccess/storage-helper";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -23,7 +26,6 @@ const clientId = process.env.gcp_client_id;
 const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
-
 function setCredentialsVars(credentials: Credentials, youtubeRefreshToken: string, json: Credentials) {
     credentials.refresh_token = youtubeRefreshToken;
     credentials.access_token = json.access_token;
@@ -32,8 +34,8 @@ function setCredentialsVars(credentials: Credentials, youtubeRefreshToken: strin
     credentials.expires_in = json.expires_in;
 }
 
-async function fetchGoogleCredentialsJWT(youtubeRefreshToken: string, credentials: Credentials) {
-    
+async function fetchGoogleCredentialsJWT(youtubeRefreshToken: string, credentials: Credentials, youtubeUsername: string) {
+
     const result = await fetch('https://accounts.google.com/o/oauth2/token', {
         method: 'POST',
         headers: {
@@ -50,23 +52,26 @@ async function fetchGoogleCredentialsJWT(youtubeRefreshToken: string, credential
 
     const json = (await result.json()) as Credentials;
 
-    let jwttoken = null; 
+    let jwttoken = null;
     const expiresOn = new Date();
 
-    if(!json.error) {
+    if (!json.error) {
         setCredentialsVars(credentials, youtubeRefreshToken, json);
-        jwttoken = jwtToken.sign(credentials); 
+        jwttoken = signJwt(credentials);
         expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
+    } else {
+        console.error({ error_message: `fetchGoogleCredentialsJWT error for ${youtubeUsername}`, error: json });
     }
+
     return { jwttoken, expiresOn };
 }
 
-async function getCredentials(youtubeId: string, youtubeRefreshToken: string): Promise<Credentials> {
+async function getCredentials(youtubeId: string, youtubeRefreshToken: string, youtubeUsername: string): Promise<Credentials> {
 
-    const keyVaultSecret = await secretStore.getJwt(youtubeId)
+    const keyVaultSecret = await readJwt(youtubeId)
         .catch(err => {
             if (err.statusCode !== 404) {
-                console.error({ error_message: `getCredentials youtubeId: ${youtubeId} youtubeRefreshToken: ${youtubeRefreshToken}` }, err);
+                console.error({ error_message: `getCredentials for ${youtubeUsername} youtubeId: ${youtubeId} youtubeRefreshToken: ${youtubeRefreshToken}` }, err);
                 throw err;
             }
             return { value: null };
@@ -81,18 +86,27 @@ async function getCredentials(youtubeId: string, youtubeRefreshToken: string): P
         expires_in: 0
     };
 
-    if (keyVaultSecret.value === null) {
-        const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials);
-        if(jwttoken !== null) await secretStore.setJwt(youtubeId, jwttoken, { expiresOn });
-    } else {
-        const payload = jwtToken.verify(keyVaultSecret.value) as Credentials;
+    try {
 
-        if (payload.access_token === null || payload.access_token === undefined) {
-            const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials);        
-            if(jwttoken !== null) await secretStore.setJwt(youtubeId, jwttoken, { expiresOn });
+        if (keyVaultSecret.value === null) {
+            const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials, youtubeUsername);
+            if (jwttoken !== null) await writeJwt(youtubeId, jwttoken, { expiresOn });
         } else {
-            setCredentialsVars(credentials, payload.refresh_token, payload);
+            const payload = verifyJwt(keyVaultSecret.value) as Credentials;
+
+            if (payload.access_token === null || payload.access_token === undefined) {
+                const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials, youtubeUsername);
+                if (jwttoken !== null) await writeJwt(youtubeId, jwttoken, { expiresOn });
+            } else {
+                setCredentialsVars(credentials, payload.refresh_token, payload);
+            }
         }
+    } catch (err) {
+        if (err.message === 'invalid signature') {
+            const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials, youtubeUsername);
+            if (jwttoken !== null) await writeJwt(youtubeId, jwttoken, { expiresOn });
+        }
+        console.error({ error_message: err.message, err });
     }
 
     return credentials;
@@ -119,7 +133,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             if (youtubeId === null || youtubeId === undefined) continue;
 
             if (youtubeId && youtubeRefreshToken) {
-                promises.push(getCredentials(youtubeId, youtubeRefreshToken));
+                promises.push(getCredentials(youtubeId, youtubeRefreshToken, youtubeUsername));
                 /*try {
                     promises.push(getCredentials(youtubeId, youtubeRefreshToken));
                 } catch (err) {

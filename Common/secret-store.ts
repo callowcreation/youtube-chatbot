@@ -1,5 +1,5 @@
 import { DefaultAzureCredential } from "@azure/identity";
-import { SecretClient, SetSecretOptions } from "@azure/keyvault-secrets";
+import { KeyVaultSecret, SecretClient, SetSecretOptions } from "@azure/keyvault-secrets";
 import * as jsonwebtoken from 'jsonwebtoken';
 
 import { Cached } from "../Interfaces/api-interfaces";
@@ -17,7 +17,7 @@ const client = new SecretClient(url, credential);
  * @param token a jwt to verify and decode
  * @returns the javascript object based on the allowed types
  */
-function verify(token: string): APICredentials | Credentials {
+ export function verifyJwt(token: string): APICredentials | Credentials {
     return jsonwebtoken.verify(token, jwt_secret, { algorithms: ['HS256'] });
 }
 
@@ -26,16 +26,26 @@ function verify(token: string): APICredentials | Credentials {
  * @param payload the javascript object to create in the jwt payload
  * @returns the jwt as a string
  */
-function sign(payload: Credentials | Cached) {
+ export function signJwt(payload: Credentials | Cached) {
     return jsonwebtoken.sign(payload, jwt_secret, { algorithm: 'HS256' });
 }
 
-export const jwtToken = {
-    sign,
-    verify
+/**
+ * 
+ * @param id channel id
+ * @returns the keystore secret containing a jwt 
+ */
+export async function readJwt(id: string): Promise<KeyVaultSecret> {
+    return client.getSecret(id);
 }
 
-export const secretStore = {
-    getJwt: (id: string) => client.getSecret(id),
-    setJwt: (id: string, jwt_token: string, options: SetSecretOptions) => client.setSecret(id, jwt_token, options)
+/**
+ * 
+ * @param id channel id the key for the secret
+ * @param jwt_token the jwt to store
+ * @param options options to dictate how the secret is handled
+ * @returns the keystore secret containing a jwt 
+ */
+export async function writeJwt(id: string, jwt_token: string, options: SetSecretOptions): Promise<KeyVaultSecret> {
+    return client.setSecret(id, jwt_token, options);
 }

@@ -12,6 +12,7 @@ export interface Values {
     storage_account_name: string;
     storage_access_key: string;
     storage_table_sas: string;
+    storage_connection_string: string;
     gcp_client_id: string;
     gcp_project_id: string;
     gcp_auth_uri: string;

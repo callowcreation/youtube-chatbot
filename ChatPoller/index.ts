@@ -1,5 +1,6 @@
 
 // "schedule": "*/10 * * * * *"
+// "schedule": "0 */1 * * * *"
 import { AzureFunction, Context } from "@azure/functions"
 import { google } from 'googleapis';
 
@@ -7,7 +8,7 @@ import { deleteLiveItem, getAllLiveItems, updateLiveItem } from "../DataAccess/l
 import { ChatPoller, ChatResponse, MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { LiveItemRecord } from "../Models/live-item-record";
 import { LiveChatError } from '../Errors/live-chat-error';
-import { secretStore, jwtToken } from "../Common/secret-store";
+import { readJwt, verifyJwt } from "../Common/secret-store";
 import { executeCommand } from "../Commands/commander";
 import { Credentials } from "../Interfaces/credentials-interface";
 import { replaceManyChatterItems } from "../DataAccess/chatter-item-repository";
@@ -23,8 +24,12 @@ const clientId = process.env.gcp_client_id;
 const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
+async function waitMS(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
 async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller> {
-    const keyVaultSecret = await secretStore.getJwt(liveItem.rowKey)
+    const keyVaultSecret = await readJwt(liveItem.rowKey)
         .catch(err => {
             if (err.statusCode !== 404)
                 throw err;
@@ -34,7 +39,7 @@ async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller>
 
     if (keyVaultSecret.value !== null) {
         try {
-            const payload = jwtToken.verify(keyVaultSecret.value) as Credentials;
+            const payload = verifyJwt(keyVaultSecret.value) as Credentials;
             const credentials: Credentials = {
                 ...payload
             };
@@ -43,7 +48,7 @@ async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller>
                 credentials
             } as ChatPoller;
         } catch (err) {
-            console.error({ error_message: err.message, err });
+            console.error({ error_message: `getLiveCredentials error for ${liveItem.rowKey} ${err.message}`, err });
             if (err.message === 'invalid signature') {
                 return null;
             }
@@ -53,8 +58,8 @@ async function getLiveCredentials(liveItem: LiveItemRecord): Promise<ChatPoller>
 }
 
 async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
-    oauth2Client.setCredentials(result.credentials);
     try {
+        oauth2Client.setCredentials(result.credentials);
 
         return service.liveChatMessages.list({
             auth: oauth2Client,
@@ -62,6 +67,7 @@ async function getLiveChatMessages(result: ChatPoller): Promise<ChatResponse> {
             liveChatId: result.live_item.liveChatId,
             pageToken: result.live_item.pageToken
         }).then(json => ({
+            credentials: result.credentials,
             live_item: result.live_item as LiveItemRecord,
             data: json.data
         }) as ChatResponse);
@@ -104,16 +110,19 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     }
     const results = (await Promise.all(promises)) as ChatPoller[];
 
-    const liveChatMessagesPromises = [];
+    const liveChatResponses = [];
     for (let i = 0; i < results.length; i++) {
         const result = results[i] as ChatPoller;
-        liveChatMessagesPromises.push(getLiveChatMessages(result));
+
+        await waitMS(250);
+        const messagePoll = await getLiveChatMessages(result);
+
+        liveChatResponses.push(messagePoll);
     }
-    const liveChatResponses = (await Promise.all(liveChatMessagesPromises)) as ChatResponse[];
 
     const chatMessageItems = [] as MessageItem[];
     for (let i = 0; i < liveChatResponses.length; i++) {
-        const { live_item, data } = liveChatResponses[i] as ChatResponse;
+        const { credentials, live_item, data } = liveChatResponses[i] as ChatResponse;
 
         try {
 
@@ -123,6 +132,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
             if (data.items.length > 0) {
                 //console.log(data.items);
                 const messageItems = data.items.map(x => ({
+                    credentials: credentials,
                     authorDetails: x.authorDetails,
                     snippet: x.snippet,
                     live_item: live_item
@@ -189,7 +199,9 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                 const result = await executeCommand(chatMessageItem);
                 //console.log(result);
                 if (result.send === true) {
-                    service.liveChatMessages.insert({
+                    await waitMS(100);
+                    oauth2Client.setCredentials(chatMessageItem.credentials);
+                    const json = await service.liveChatMessages.insert({
                         auth: oauth2Client,
                         part: ['snippet'],
                         requestBody: {
@@ -201,17 +213,16 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                                 }
                             }
                         }
-                    }).then(json => {
-                        //console.log({ json });
-                    }).catch(e => {
-                        console.error({ error_message: `liveChatMessages insert channelId: ${chatMessageItem.live_item.rowKey}` }, e);
                     });
+                    console.log({ json });
                 }
             } catch (err) {
                 if (err instanceof CommandError) {
                     console.error({ error_message: `CommandError chat message: ${chatMessageItem.snippet.displayMessage}` }, err);
                     if (err.send === true) {
-                        service.liveChatMessages.insert({
+                        await waitMS(100);
+                        oauth2Client.setCredentials(chatMessageItem.credentials);
+                        const json = await service.liveChatMessages.insert({
                             auth: oauth2Client,
                             part: ['snippet'],
                             requestBody: {
@@ -223,11 +234,11 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                                     }
                                 }
                             }
-                        }).then(json => {
-                            //console.log({ json });
                         }).catch(e => {
                             console.error({ error_message: `CommandError liveChatMessages insert channelId: ${chatMessageItem.live_item.rowKey}` }, e);
                         });
+
+                        console.log({ json });
                     }
                 } else {
                     // log error
@@ -241,4 +252,3 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
 };
 
 export default timerTrigger;
-

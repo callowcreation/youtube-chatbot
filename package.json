@@ -22,6 +22,7 @@
     "@azure/data-tables": "^13.0.1",
     "@azure/identity": "^2.0.4",
     "@azure/keyvault-secrets": "^4.3.0",
+    "@azure/storage-queue": "^12.7.0",
     "crypto": "^1.0.1",
     "googleapis": "^95.0.0",
     "node-fetch": "^2.6.7"

@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-import { secretStore, jwtToken } from '../Common/secret-store';
+import { readJwt, signJwt, verifyJwt, writeJwt } from '../Common/secret-store';
 import { ApiRequestError } from '../Errors/api-request-error';
 import { Cached, ClientCredentials, RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
 import { APICredentials } from '../Interfaces/credentials-interface';
@@ -28,9 +28,9 @@ async function getCachedToken(client_credentials: ClientCredentials) {
     const secondsOff = 60;
 
     try {
-        const keyVaultSecret = await secretStore.getJwt(key);
+        const keyVaultSecret = await readJwt(key);
 
-        const payload = jwtToken.verify(keyVaultSecret.value) as APICredentials;
+        const payload = verifyJwt(keyVaultSecret.value) as APICredentials;
         cached.access_token = payload.access_token;
         cached.expires_in = payload.expires_in;
         cached.expires_time = payload.expires_time;
@@ -53,8 +53,8 @@ async function getCachedToken(client_credentials: ClientCredentials) {
         const expiresOn = new Date();
         expiresOn.setSeconds(expiresOn.getSeconds() + cached.expires_in);
 
-        const jwt = jwtToken.sign(payload);
-        await secretStore.setJwt(key, jwt, { expiresOn });
+        const jwt = signJwt(payload);
+        await writeJwt(key, jwt, { expiresOn });
     }
 
     return { access_token: cached.access_token };
