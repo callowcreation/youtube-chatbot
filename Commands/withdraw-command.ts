@@ -38,6 +38,6 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
     return {
         name: name,
         send: true,
-        message: `${name} successful.`,
+        message: result ? `${name} successful.` : `withdraw failed`,
     } as CommandOutput;
 }
