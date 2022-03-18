@@ -42,6 +42,12 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
 
     const result = await postRequest<any>(endpoints.api.transaction.path('tip'), issuerId, data);
     console.log(result);
+    let message = ``;
+    if(result[0].txId) {
+        message = `tipped the broadcaster ${amount} ${coin}.`;
+    } else {
+        message = `tip the broadcaster failed ${amount} ${coin}.`;
+    }
     return {
         name: name,
         send: true,

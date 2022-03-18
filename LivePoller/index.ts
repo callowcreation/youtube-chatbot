@@ -197,7 +197,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     }
                 }
             } catch (err) {
-                console.error({ error_message: err.statusText });
+                    console.error({ error_message: 'Live Poller' +  JSON.stringify(err) });
             }
         }
     } else {
