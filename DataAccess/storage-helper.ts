@@ -1,6 +1,5 @@
 import { TableClient } from "@azure/data-tables";
 import { QueueClient } from "@azure/storage-queue";
-import { randomUUID } from "crypto";
 
 const storageUrl = `https://${process.env.storage_account_name}.table.core.windows.net`;
 const sasToken = process.env.storage_table_sas;
