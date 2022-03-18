@@ -35,6 +35,8 @@ export interface WithdrawRequest {
     platform: string;
 }
 
+export interface DepositRequest extends WithdrawRequest {}
+
 export interface FromRequest extends WithdrawRequest {
     from: string;
 }

@@ -6,6 +6,7 @@ import rainCommand from "./rain-command";
 import sendCommand from "./send-command";
 import tipCommand from "./tip-command";
 import withdrawCommand from "./withdraw-command";
+import depositCommand from "./deposit-command";
 
 export async function executeCommand(message_item: MessageItem) {
 
@@ -38,6 +39,9 @@ export async function executeCommand(message_item: MessageItem) {
         };
         case '$commands': {
             return helpCommand(message_item);
+        };
+        case '$deposit': {
+            return depositCommand(message_item);
         };
         default: {
             throw new Error(`${name} is not a command`);

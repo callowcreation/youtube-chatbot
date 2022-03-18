@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 import { readJwt, signJwt, verifyJwt, writeJwt } from '../Common/secret-store';
 import { ApiRequestError } from '../Errors/api-request-error';
-import { Cached, ClientCredentials, RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
+import { Cached, ClientCredentials, DepositRequest, RainRequest, TipRequest, UpdateTokenRequest, WithdrawRequest } from '../Interfaces/api-interfaces';
 import { APICredentials } from '../Interfaces/credentials-interface';
 
 export const platform: string = 'youtube';
@@ -132,7 +132,7 @@ export async function getRequest<T>(url: string): Promise<T> {
     return _request<T>('GET', url, null);
 }
 
-export async function postRequest<T>(url: string, youtubeId: string, data: WithdrawRequest | RainRequest | TipRequest | UpdateTokenRequest): Promise<T> {
+export async function postRequest<T>(url: string, youtubeId: string, data: WithdrawRequest | DepositRequest | RainRequest | TipRequest | UpdateTokenRequest): Promise<T> {
     return _request<T>('POST', url, youtubeId, data);
 }
 
