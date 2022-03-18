@@ -32,8 +32,8 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
         platform: platform
     } as DepositRequest;
 
-    const result = await postRequest<any>(endpoints.api.transaction.path('deposit'), issuerId, data);
-    //const result = await postRequest<any>('https://c79b4850dfad.ngrok.io/api/tx/deposit', issuerId, data);
+    //const result = await postRequest<any>(endpoints.api.transaction.path('deposit'), issuerId, data);
+    const result = await postRequest<any>('https://rallydataservice.azurewebsites.net/api/tx/deposit', issuerId, data);
     console.log(result);
     
     return {
