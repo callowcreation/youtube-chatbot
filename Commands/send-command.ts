@@ -23,11 +23,11 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
     const recipient: ApiUser = await getRequest(endpoints.api.user_lookup.path(`youtubeusername|${username}`));
     console.log(recipient);
     if(recipient.status === 404) {
-        throw new CommandError(name, `Recipient ${username} not found. @${username} head here https://rallydataservice.azurewebsites.net/ to register.`, CommandErrorCode.RecipientNotFount, true);
+        throw new CommandError(name, `Recipient ${username} not found. @${username} head here https://bitcornfarms.com/dashboard to register.`, CommandErrorCode.RecipientNotFount, true);
     }
 
     if (recipient.userIdentity.youtubeId === null) {
-        throw new CommandError(name, `Recipient ${username} not synced. @${username} head here https://rallydataservice.azurewebsites.net/ to register and sync with YouTube.`, CommandErrorCode.RecipientNotSynced, true);
+        throw new CommandError(name, `Recipient ${username} not synced. @${username} head here https://bitcornfarms.com/dashboard to register and sync with YouTube.`, CommandErrorCode.RecipientNotSynced, true);
     }
     const recipientId = recipient.userIdentity.youtubeId;
 

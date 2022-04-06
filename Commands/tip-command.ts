@@ -51,6 +51,6 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
     return {
         name: name,
         send: true,
-        message: `tipped the broadcaster ${amount} ${coin}.`,
+        message,
      } as CommandOutput;
 }

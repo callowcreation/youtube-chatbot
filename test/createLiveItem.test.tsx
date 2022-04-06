@@ -35,7 +35,7 @@ test('coin command message return link to register', async () => {
     const message_item: MessageItem = getBasicMessageItem(basicMessageArgs);
 
     const result = await coinCommand(message_item);
-    expect(result.message).toBe(`head here https://rallydataservice.azurewebsites.net/ to register and sync with YouTube.`);
+    expect(result.message).toBe(`head here https://bitcornfarms.com/dashboard to register and sync with YouTube.`);
 });
 
 test('help command message return link to help page', async () => {

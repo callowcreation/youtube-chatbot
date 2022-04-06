@@ -18,6 +18,6 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
     return {
         name: name,
         send: true,
-        message: `head here https://rallydataservice.azurewebsites.net/ to register and sync with YouTube.`,
+        message: `head here https://bitcornfarms.com/dashboard to register and sync with YouTube.`,
     } as CommandOutput;
 }

@@ -73,7 +73,7 @@ export default async function (channelId: string, displayMessage: string, author
         const failedResults = chatters.map(x => x.displayName).filter(x => !successResults.includes(x));
 
         const successMessage = `airdropped ${+amount / +count} ${coin} on ${successResults.map(x => `@${x}`).join(' ')}.`;
-        const failedMessage = `Head here https://rallydataservice.azurewebsites.net/ to register and sync with YouTube to join the fun ${failedResults.map(x => `@${x}`).join(' ')}.`;
+        const failedMessage = `Head here https://bitcornfarms.com/dashboard to register and sync with YouTube to join the fun ${failedResults.map(x => `@${x}`).join(' ')}.`;
         
         output.message = (successResults.length > 0 ? successMessage : '') + (failedResults.length > 0 ? `  ${failedMessage}` : '');
 
