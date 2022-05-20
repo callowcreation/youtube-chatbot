@@ -1,5 +1,5 @@
 export interface OmittedItemRecord {
-	id: string; // username for the id
-	channelId: string;
+	partitionKey: string; // channel id
+	rowKey: string; // username for the id
 	issuerId: string;
 }

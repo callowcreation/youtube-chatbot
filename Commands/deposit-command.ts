@@ -1,4 +1,4 @@
-import { WithdrawRequest } from "../Interfaces/api-interfaces";
+import { DepositRequest } from "../Interfaces/api-interfaces";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
@@ -7,14 +7,14 @@ import { CommandOutput } from "../Interfaces/command-output-interface";
 
 export default async function (message_item: MessageItem): Promise<CommandOutput> {
 
-    // {widthdraw} {amount} {coin}
-    const regExp = RegExp(/\$(withdraw) ((?:\d+(?:\.\d+)?)|(?:\d+)|(?:\.\d+)) (\w+)/);
+    // {deposit} {amount} {coin}
+    const regExp = RegExp(/\$(deposit) ((?:\d+(?:\.\d+)?)|(?:\d+)|(?:\.\d+)) (\w+)/);
     const regExpSplit = regExp.exec(message_item.snippet.displayMessage);
 
 	if(regExpSplit === null || regExpSplit.length !== 4) {
-        const example = `Here is the format $withdraw {amount} {type of coin}. Example: $withdraw 10 RLY`;
+        const example = `Here is the format $deposit {amount} {type of coin}. Example: $deposit 10 RLY`;
         const message = `${message_item.snippet.displayMessage} is malformed. ${example}`;
-        throw new CommandError('withdraw', message, CommandErrorCode.Malformed, true);
+        throw new CommandError('deposit', message, CommandErrorCode.Malformed, true);
     }
 	const [, name, amount, coin] = regExpSplit.map(x => x.trim());
 
@@ -30,14 +30,15 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
         token: coin,
         amount: +amount, //0.01,
         platform: platform
-    } as WithdrawRequest;
+    } as DepositRequest;
 
-    const result = await postRequest<any>(endpoints.api.transaction.path('withdraw'), issuerId, data);
+    //const result = await postRequest<any>(endpoints.api.transaction.path('deposit'), issuerId, data);
+    const result = await postRequest<any>('https://rallydataservice.azurewebsites.net/api/tx/deposit', issuerId, data);
     console.log(result);
     
     return {
         name: name,
         send: true,
-        message: result ? `${name} successful.` : `withdraw failed`,
+        message: result ? `${name} successful.` : `deposit failed`,
     } as CommandOutput;
 }

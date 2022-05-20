@@ -1,77 +1,34 @@
-import { CosmosClient } from "@azure/cosmos";
 import { OmittedItemRecord } from "../Models/omitted-item-record";
+import { getStorageTableClient } from "./storage-helper";
 
-function getCosmosDbContainer() {
-    const cosmosDbConnectionString = process.env["ytchatbotdbdev_DOCUMENTDB"];
+const tableName = 'omittedcontainer';
+const client = getStorageTableClient(tableName);
 
-    const client = new CosmosClient(cosmosDbConnectionString);
-    const database = client.database("omittedcontainer");
-    const container = database.container("omittedItems");
-
-    return container;
+function makeOmittedItemEntity(omittedItem: OmittedItemRecord) {
+    return {
+        ...omittedItem
+    };
 }
 
-export async function getAllOmittedItems(): Promise<OmittedItemRecord[]> {
-    const querySpec = {
-        query: `SELECT * from c`
-    };
-
-    const container = getCosmosDbContainer();
-    const { resources: omittedItems } = await container.items
-        .query(querySpec)
-        .fetchAll();
-
-    return omittedItems.map(item => {
-        return {
-            id: item.id, // username
-            channelId: item.channelId,
-            issuerId: item.issuerId
-        } as OmittedItemRecord;
-    }) as OmittedItemRecord[];
-}
-
-export async function getOmittedItem(username: string, channelId: string): Promise<OmittedItemRecord> {
-    const querySpec = {
-        query: `SELECT * from c WHERE c.channelId = '${channelId}' AND c.id = '${username}'`
-    };
-
-    const container = getCosmosDbContainer();
-    const { resources: omittedItems } = await container.items
-        .query(querySpec)
-        .fetchAll();
-
-    if(omittedItems.length === 1) {
-        const item = omittedItems[0];
-        return {
-            id: item.id, // username
-            channelId: item.channelId,
-            issuerId: item.issuerId
-        } as OmittedItemRecord;
-    }
-    return null;
-}
-
-export async function getOmittedItems(channelId: string): Promise<OmittedItemRecord[]> {
-    const querySpec = {
-        query: `SELECT * from c WHERE c.channelId = '${channelId}'`
-    };
-
-    const container = getCosmosDbContainer();
-    const { resources: omittedItems } = await container.items
-        .query(querySpec)
-        .fetchAll();
-
-        return omittedItems.map(item => {
-            return {
-                id: item.id, // username
-                channelId: item.channelId,
-                issuerId: item.issuerId
-            } as OmittedItemRecord;
-        }) as OmittedItemRecord[];
+/**
+ * 
+ * @param partitionKey the channel id
+ * @param rowKey the username
+ */
+export async function getOmittedItem(partitionKey: string, rowKey: string): Promise<OmittedItemRecord> {
+    return client.getEntity(partitionKey, rowKey);
 }
 
 export async function createOmittedItem(omittedItem: OmittedItemRecord) {
-    const container = getCosmosDbContainer();
-    const { resource: createdItem } = await container.items.create(omittedItem);
-    return createdItem;
+    const entity = makeOmittedItemEntity(omittedItem);
+    await client.createEntity(entity);
+}
+
+/**
+ * 
+ * @param partitionKey the channel id
+ * @param rowKey the username
+ */
+export async function deleteOmittedItem(partitionKey: string, rowKey: string) {
+    await client.deleteEntity(partitionKey, rowKey);
 }

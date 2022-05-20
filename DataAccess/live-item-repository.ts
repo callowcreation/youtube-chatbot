@@ -1,82 +1,71 @@
-import { CosmosClient } from "@azure/cosmos";
+import { odata } from "@azure/data-tables";
+
 import { LiveItemRecord } from "../Models/live-item-record";
+import { getStorageTableClient } from "./storage-helper";
 
-function getCosmosDbContainer() {
-    const cosmosDbConnectionString = process.env["ytchatbotdbdev_DOCUMENTDB"];
+const partitionKey = 'liveItems';
+const tableName = 'livecontainer';
 
-    const client = new CosmosClient(cosmosDbConnectionString);
-    const database = client.database("livecontainer");
-    const container = database.container("liveItems");
+const client = getStorageTableClient(tableName);
 
-    return container;
+function makeLiveItemEntity(liveItem: LiveItemRecord) {
+    return {
+        partitionKey: partitionKey,
+        ...liveItem
+    };
 }
 
 export async function getAllLiveItems(): Promise<LiveItemRecord[]> {
-    const querySpec = {
-        query: `SELECT * from c`
-    };
-
-    const container = getCosmosDbContainer();
-    const { resources: liveItems } = await container.items
-        .query(querySpec)
-        .fetchAll();
-
-    return liveItems.map(item => {
-        return {
-            id: item.id,
-            liveChatId: item.liveChatId,
-            pageToken: item.pageToken
-        } as LiveItemRecord;
-    }) as LiveItemRecord[];
-}
-
-export async function getLiveItem(id: string): Promise<LiveItemRecord> {
-    const querySpec = {
-        query: `SELECT * from c WHERE c.id = '${id}'`
-    };
-
-    const container = getCosmosDbContainer();
-    const { resources: liveItems } = await container.items
-        .query(querySpec)
-        .fetchAll();
-
-    if (liveItems.length === 1) {
-        const item = liveItems[0];
-        return {
-            id: item.id,
-            liveChatId: item.liveChatId,
-            pageToken: item.pageToken
-        } as LiveItemRecord;
-    } else {
-        return null;
-    }
-}
-
-export async function deleteLiveItem(id: string): Promise<any> {
-    const container = getCosmosDbContainer();
-    const item = container.item(id, id);
-    const result = await item.delete().catch(e => {
-        console.log(e);
-    });
-    return result;
-}
-
-export async function updateLiveItem(id: string, liveItem: LiveItemRecord): Promise<LiveItemRecord> {
-    const container = getCosmosDbContainer();
-
-        try {
-            const { resource: updatedItem } = await container
-            .item(id)
-            .replace(liveItem);
-            return updatedItem;
-        } catch (err) {
-            console.log(err);
-            throw err;
+    const listResults = client.listEntities({
+        queryOptions: {
+            filter: odata`PartitionKey eq ${partitionKey}`,
+            select: ['rowKey', 'liveChatId', 'pageToken']
         }
+    });
+
+    console.log({ log_message: 'Getting all live items' });
+
+    const liveEntities: LiveItemRecord[] = [];
+    try {
+        const iterator = listResults.byPage({ maxPageSize: 10 });
+
+        for await (const page of iterator) {
+            const liveItemRecord = page.map(x => {
+                return {
+                    rowKey: x.rowKey,
+                    liveChatId: x.liveChatId,
+                    pageToken: x.pageToken
+                } as LiveItemRecord;
+            });
+            liveEntities.push(...liveItemRecord);
+        }
+        
+        console.log({ log_message: 'Getting all live items count: ' + liveEntities.length });
+    } catch (err) {
+        console.error({ error_message: 'Getting all live items ERROR' }, err);
+    }
+
+    return liveEntities;
+}
+
+export async function getLiveItem(rowKey: string): Promise<LiveItemRecord> {
+    const entity = await client.getEntity(partitionKey, rowKey) as LiveItemRecord;
+    console.log({ log_message: 'Get live chat id from storage', liveChatId: entity.liveChatId });
+    return entity;
+}
+
+export async function updateLiveItem(liveItem: LiveItemRecord) {
+    const entity = makeLiveItemEntity(liveItem);
+    console.log({ log_message: 'Updated live chat id', liveChatId: entity.liveChatId });
+    await client.updateEntity(entity, 'Merge');
 }
 
 export async function createLiveItem(liveItem: LiveItemRecord) {
-    const container = getCosmosDbContainer();
-    const { resource: createdItem } = await container.items.create(liveItem);
-    return createdItem;
+    const entity = makeLiveItemEntity(liveItem);
+    console.log({ log_message: 'Created live chat id', liveChatId: entity.liveChatId });
+    await client.createEntity(entity);
+}
+
+export async function deleteLiveItem(rowKey: string) {
+    await client.deleteEntity(partitionKey, rowKey);
 }

@@ -1,3 +1,6 @@
+// "schedule": "0 */5 * * * *"
+// "schedule": "0 */1 * * * *"
+
 import { AzureFunction, Context } from "@azure/functions"
 
 import { google } from 'googleapis';
@@ -8,8 +11,9 @@ import { createLiveItem, deleteLiveItem, getLiveItem, updateLiveItem } from "../
 import { LiveItemRecord } from "../Models/live-item-record";
 import { getRequest } from "../APIAccess/api-request";
 import { ApiUser } from "../Interfaces/api-interfaces";
-import { makeJwtToken, secretStore, verifyAndDecodeJwt } from "../Common/secret-store";
+import { readJwt, signJwt, verifyJwt, writeJwt } from "../Common/secret-store";
 import { endpoints } from '../APIAccess/endpoints';
+import { getStorageQueueClient } from "../DataAccess/storage-helper";
 
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -17,19 +21,59 @@ const SCOPES = [
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube',
 ];
-const clientSecret = process.env.client_secret;
-const clientId = process.env.client_id;
+const clientSecret = process.env.gcp_client_secret;
+const clientId = process.env.gcp_client_id;
 const redirectUri = process.env.IS_DEV === '1' ? process.env.redirect_uri_dev : process.env.redirect_uri_prod;
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
+function setCredentialsVars(credentials: Credentials, youtubeRefreshToken: string, json: Credentials) {
+    credentials.refresh_token = youtubeRefreshToken;
+    credentials.access_token = json.access_token;
+    credentials.scope = json.scope;
+    credentials.token_type = json.token_type;
+    credentials.expires_in = json.expires_in;
+}
 
-async function getCredentials(youtubeId: string, youtubeRefreshToken: string): Promise<Credentials> {
+async function fetchGoogleCredentialsJWT(youtubeRefreshToken: string, credentials: Credentials, youtubeUsername: string) {
 
-    const keyVaultSecret = await secretStore.getJwt(youtubeId)
+    const result = await fetch('https://accounts.google.com/o/oauth2/token', {
+        method: 'POST',
+        headers: {
+            'Host': 'accounts.google.com',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            grant_type: 'refresh_token',
+            refresh_token: youtubeRefreshToken
+        })
+    });
+
+    const json = (await result.json()) as Credentials;
+
+    let jwttoken = null;
+    const expiresOn = new Date();
+
+    if (!json.error) {
+        setCredentialsVars(credentials, youtubeRefreshToken, json);
+        jwttoken = signJwt(credentials);
+        expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
+    } else {
+        console.error({ error_message: `fetchGoogleCredentialsJWT error for ${youtubeUsername}`, error: json });
+    }
+
+    return { jwttoken, expiresOn };
+}
+
+async function getCredentials(youtubeId: string, youtubeRefreshToken: string, youtubeUsername: string): Promise<Credentials> {
+
+    const keyVaultSecret = await readJwt(youtubeId)
         .catch(err => {
-            if (err.statusCode !== 404)
+            if (err.statusCode !== 404) {
+                console.error({ error_message: `getCredentials for ${youtubeUsername} youtubeId: ${youtubeId} youtubeRefreshToken: ${youtubeRefreshToken}` }, err);
                 throw err;
-            console.log(err);
+            }
             return { value: null };
         });
 
@@ -38,47 +82,31 @@ async function getCredentials(youtubeId: string, youtubeRefreshToken: string): P
         refresh_token: youtubeRefreshToken,
         scope: SCOPES.join(' '),
         token_type: 'Bearer',
-        access_token: '',
+        access_token: null,
         expires_in: 0
     };
 
-    if (keyVaultSecret.value === null) {
+    try {
 
-        const result = await fetch('https://accounts.google.com/o/oauth2/token', {
-            method: 'POST',
-            headers: {
-                'Host': 'accounts.google.com',
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: clientId,
-                client_secret: clientSecret,
-                grant_type: 'refresh_token',
-                refresh_token: youtubeRefreshToken
-            })
-        });
+        if (keyVaultSecret.value === null) {
+            const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials, youtubeUsername);
+            if (jwttoken !== null) await writeJwt(youtubeId, jwttoken, { expiresOn });
+        } else {
+            const payload = verifyJwt(keyVaultSecret.value) as Credentials;
 
-        const json = (await result.json()) as Credentials;
-
-        credentials.refresh_token = youtubeRefreshToken;
-        credentials.access_token = json.access_token;
-        credentials.scope = json.scope;
-        credentials.token_type = json.token_type;
-        credentials.expires_in = json.expires_in;
-
-        const expiresOn = new Date();
-        expiresOn.setSeconds(expiresOn.getSeconds() + credentials.expires_in);
-
-        const payload = makeJwtToken(credentials);
-        await secretStore.setJwt(youtubeId, payload, { expiresOn });
-    } else {
-        const payload = verifyAndDecodeJwt(keyVaultSecret.value) as Credentials;
-
-        credentials.refresh_token = payload.refresh_token;
-        credentials.access_token = payload.access_token;
-        credentials.scope = payload.scope;
-        credentials.token_type = payload.token_type;
-        credentials.expires_in = payload.expires_in;
+            if (payload.access_token === null || payload.access_token === undefined) {
+                const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials, youtubeUsername);
+                if (jwttoken !== null) await writeJwt(youtubeId, jwttoken, { expiresOn });
+            } else {
+                setCredentialsVars(credentials, payload.refresh_token, payload);
+            }
+        }
+    } catch (err) {
+        if (err.message === 'invalid signature') {
+            const { jwttoken, expiresOn } = await fetchGoogleCredentialsJWT(youtubeRefreshToken, credentials, youtubeUsername);
+            if (jwttoken !== null) await writeJwt(youtubeId, jwttoken, { expiresOn });
+        }
+        console.error({ error_message: err.message, err });
     }
 
     return credentials;
@@ -90,30 +118,32 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     if (myTimer.isPastDue) {
         console.log('Live Poller is running late!');
     }
-    console.log('Live Poller function ran!', timeStamp);
+    console.log({ log_message: 'Live Poller function ran, timestamp: ' + timeStamp });
 
     const userItems: ApiUser[] = await getRequest<ApiUser[]>(endpoints.api.user.path('all'));
 
-    //console.log(userItems);
+    console.log({ log_message: `Got ${userItems.length} ApiUsers` });
 
     if (userItems && userItems.length > 0) {
 
         const promises = [];
         for (let i = 0; i < userItems.length; i++) {
 
-            const { userId, userIdentity: { youtubeId, youtubeRefreshToken } } = userItems[i];
+            const { userId, userIdentity: { youtubeId, youtubeUsername, youtubeRefreshToken } } = userItems[i];
             if (youtubeId === null || youtubeId === undefined) continue;
 
             if (youtubeId && youtubeRefreshToken) {
-                try {
+                promises.push(getCredentials(youtubeId, youtubeRefreshToken, youtubeUsername));
+                /*try {
                     promises.push(getCredentials(youtubeId, youtubeRefreshToken));
                 } catch (err) {
-                    if (err.statusCode !== 404) throw err;
-                    console.log(err);
-                }
+                    if (err.statusCode !== 404) {
+                        console.error({ error_message: `${youtubeUsername} id ${userId} youtubeRefreshToken: ${youtubeRefreshToken}` }, err);
+                        throw err;
+                    }
+                }*/
             } else {
-                console.log(`User ${userId} has no youtube id or youtube refresh token`);
-                return;
+                console.warn({ warn_message: `User ${youtubeUsername} id ${userId} has no youtube id or youtube refresh token` });
             }
 
         }
@@ -122,10 +152,20 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         for (let i = 0; i < results.length; i++) {
             const credentials = results[i];
             if (credentials === undefined) continue;
+            if (!credentials.access_token) {
+                console.log({ log_message: `User not sync'd`, credentials });
+                continue;
+            }
             oauth2Client.setCredentials(credentials);
 
             try {
-                const item = await getLiveItem(credentials.id);
+                const item = await getLiveItem(credentials.id).catch(e => {
+                    if (e.statusCode !== 404) {
+                        console.error({ error_message: `getLiveItem ${credentials.id}` }, e);
+                        throw e;
+                    }
+                    return null;
+                });
 
                 const json = await service.liveBroadcasts.list({
                     auth: oauth2Client,
@@ -138,34 +178,32 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
                     const { channelId, liveChatId } = streamInfo.snippet;
 
                     const liveItem = {
-                        id: channelId,
+                        rowKey: channelId,
                         liveChatId: liveChatId
                     } as LiveItemRecord;
-                    
+
                     if (item === null) {
                         await createLiveItem(liveItem);
-                        console.log(`Created new ${credentials.id} is live`);
+                        console.log({ log_message: `Created new ${credentials.id} is live` });
                     } else {
                         liveItem.pageToken = item.pageToken;
-                        await updateLiveItem(liveItem.id, liveItem);
-                        console.log(`Update live item for ${credentials.id}`);
+                        await updateLiveItem(liveItem);
+                        console.log({ log_message: `Update live item for ${credentials.id}` });
                     }
                 } else { // stream may be offline
                     if (item !== null) {
-                        await deleteLiveItem(item.id);
-                        console.log(`Removed ${item.id} not live`);
+                        await deleteLiveItem(item.rowKey);
+                        console.log({ log_message: `Removed ${item.rowKey} not live` });
                     }
                 }
             } catch (err) {
-                console.error(err);
+                    console.error({ error_message: 'Live Poller' +  JSON.stringify(err) });
             }
         }
     } else {
-        console.log('No user items');
+        console.log({ log_message: 'No user items' });
     }
 
 };
 
 export default timerTrigger;
-
-

@@ -1,4 +1,3 @@
-
 import { TipRequest } from "../Interfaces/api-interfaces";
 import { getRequest, platform, postRequest } from "../APIAccess/api-request";
 import { endpoints } from "../APIAccess/endpoints";
@@ -21,7 +20,7 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
     
     const issuerId = message_item.snippet.authorChannelId;
 
-    const recipientId = message_item.live_item.id;
+    const recipientId = message_item.live_item.rowKey;
 
     if (issuerId === recipientId) {
         throw new CommandError(name, `Issuer ${message_item.authorDetails.displayName} and recipient ${message_item.authorDetails.displayName} can not be the same.`, CommandErrorCode.IssuerIsRecipient, true);
@@ -43,9 +42,15 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
 
     const result = await postRequest<any>(endpoints.api.transaction.path('tip'), issuerId, data);
     console.log(result);
+    let message = ``;
+    if(result[0].txId) {
+        message = `tipped the broadcaster ${amount} ${coin}.`;
+    } else {
+        message = `tip the broadcaster failed ${amount} ${coin}.`;
+    }
     return {
         name: name,
         send: true,
-        message: `tipped the broadcaster ${amount} ${coin}.`,
+        message,
      } as CommandOutput;
 }

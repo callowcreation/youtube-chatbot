@@ -25,6 +25,7 @@ export interface ChatItem {
 }
 
 export interface ChatResponse {
+	credentials: Credentials
 	live_item: LiveItemRecord;
 	data: {
 		nextPageToken: string;
@@ -34,6 +35,7 @@ export interface ChatResponse {
 }
 
 export interface MessageItem {
+	credentials: Credentials
 	live_item: LiveItemRecord;
 	snippet: ChatSnippet;
 	authorDetails: ChatAuthorDetails;

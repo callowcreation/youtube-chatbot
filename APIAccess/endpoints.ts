@@ -1,6 +1,7 @@
 class Endpoint {
               
     readonly apiUrl: string = 'https://rallydataservice.azurewebsites.net';
+    //readonly apiUrl: string = 'https://8bae-85-76-16-164.ngrok.io';
     readonly base: string;
 
     constructor(base: string) {
@@ -11,7 +12,6 @@ class Endpoint {
         const endpoint = param ? `/${param}` : ``;
         return `${this.apiUrl}/${this.base}${endpoint}`;
     }
-    
 }
 
 class Api {

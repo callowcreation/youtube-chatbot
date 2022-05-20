@@ -1,4 +1,3 @@
-
 import { MessageItem } from "../Interfaces/chat-poller-interfaces";
 import { createOmittedItem } from "../DataAccess/omitted-item-repository";
 import { OmittedItemRecord } from "../Models/omitted-item-record";
@@ -23,15 +22,21 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
 
     try {
         const omitItem: OmittedItemRecord = {
-            id: username,
-            channelId: message_item.live_item.id,
+            partitionKey: message_item.live_item.rowKey,
+            rowKey: username,
             issuerId: issuerId
         } as OmittedItemRecord;
 
         const result = await createOmittedItem(omitItem);
         console.log({ result });
 
-        const delResult = await deleteChatterItems(username);
+        const delResult = await deleteChatterItems(omitItem.partitionKey, omitItem.rowKey)
+            .catch(e => {
+                if (e.statusCode !== 404) {
+                    console.error({ error_message: `deleteChatterItems ${name}` }, e);
+                    throw e;
+                }
+            });
         console.log({ delResult });
         return {
             name: name,
@@ -39,7 +44,7 @@ export default async function (message_item: MessageItem): Promise<CommandOutput
             message: `the ${username} is now omitted from transactions.`,
         } as CommandOutput;
     } catch (err) {
-        console.log(err);
+        console.error({ error_message: `Command error ${name} - ${message_item.snippet.displayMessage}` }, err);
 
         return {
             name: name,

@@ -43,12 +43,12 @@ export default async function (channelId: string, displayMessage: string, author
         if (+count > 10) {
             throw new CommandError(output.name, `Max user count is ${10} input of ${+count} is to high`, CommandErrorCode.AirdropMaxUserCount, true);
         }
-        const chatters = await getAllChatterItems(issuerId, channelId, (+count <= 10 ? +count : 10));
+        const chatters = await getAllChatterItems(channelId, issuerId, (+count <= 10 ? +count : 10));
         //console.log({ chatters });
         if (chatters.length === 0) {
             throw new CommandError(output.name, `No recent chatters for ${displayMessage}.`, CommandErrorCode.NoRecentChatters, true)
         }
-        const recipientIds = chatters.map(x => x.id);
+        const recipientIds = chatters.map(x => x.rowKey);
 
         const coinList = (await getRequest(endpoints.api.coin_list.path())) as string[];
         const coins = coinList.map(x => x.toLowerCase());
@@ -73,7 +73,7 @@ export default async function (channelId: string, displayMessage: string, author
         const failedResults = chatters.map(x => x.displayName).filter(x => !successResults.includes(x));
 
         const successMessage = `airdropped ${+amount / +count} ${coin} on ${successResults.map(x => `@${x}`).join(' ')}.`;
-        const failedMessage = `Head here https://rallydataservice.azurewebsites.net/ to register and sync with YouTube to join the fun ${failedResults.map(x => `@${x}`).join(' ')}.`;
+        const failedMessage = `Head here https://bitcornfarms.com/dashboard to register and sync with YouTube to join the fun ${failedResults.map(x => `@${x}`).join(' ')}.`;
         
         output.message = (successResults.length > 0 ? successMessage : '') + (failedResults.length > 0 ? `  ${failedMessage}` : '');
 

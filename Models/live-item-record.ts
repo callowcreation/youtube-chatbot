@@ -1,5 +1,8 @@
 export interface LiveItemRecord {
-	id: string;
+	/**
+	 * rowKey is a channel id
+	 */
+	rowKey: string;
 	liveChatId: string;
-	pageToken: null;
+	pageToken: string;
 }
